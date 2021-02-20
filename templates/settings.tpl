@@ -13,23 +13,13 @@
     {fbvFormArea}
     {fbvFormSection list=true}
     <p align="justify" class="description" style="color: rgba(0,0,0,0.54)">{translate
-        key="plugins.generic.geoOJS.settings.usernameGeonames.description"}
+        key="plugins.generic.ojsErcPlugin.settings.serverURL.description"}
         {fbvElement
         type="text"
-        id="usernameGeonames"
-        value=$usernameGeonames
-        label="plugins.generic.geoOJS.settings.usernameGeonames"
+        id="serverURL"
+        value=$serverURL
+        label="plugins.generic.ojsErcPlugin.settings.serverURL"
         }
-        {/fbvFormSection}
-        {fbvFormSection list=true}
-    <p align="justify" class="description" style="color: rgba(0,0,0,0.54)"> {translate
-            key="plugins.generic.geoOJS.settings.CDN.description"}
-        {fbvElement
-            type="checkbox"
-            id="checkboxDisableCDN"
-            checked=$checkboxDisableCDN
-            label="plugins.generic.geoOJS.settings.CDN"
-            }
         {/fbvFormSection}
         {/fbvFormArea}
         {fbvFormButtons submitText="common.save"}

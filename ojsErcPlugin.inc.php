@@ -88,6 +88,7 @@ class ojsErcPlugin extends GenericPlugin
 			Further information can be found here: https://docs.pkp.sfu.ca/dev/plugin-guide/en/examples-styles-scripts
 			*/
 			
+			/*
 			// loading the leaflet scripts, source: https://leafletjs.com/examples/quick-start/
 			$templateMgr->addStyleSheet('leafletCSS', $urlLeafletCSS, array('contexts' => array('frontend', 'backend')));
 			$templateMgr->addJavaScript('leafletJS', $urlLeafletJS, array('contexts' => array('frontend', 'backend')));
@@ -110,6 +111,7 @@ class ojsErcPlugin extends GenericPlugin
 			// main js scripts
 			$templateMgr->assign('submissionMetadataFormFieldsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/submissionMetadataFormFields.js');
 			$templateMgr->assign('article_detailsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/article_details.js');
+			*/
 		}
 		return $success;
 	}
@@ -410,7 +412,6 @@ class ojsErcPlugin extends GenericPlugin
 	 * @copydoc Plugin::getActions() - https://docs.pkp.sfu.ca/dev/plugin-guide/en/settings
 	 * Function needed for Plugin Settings.
 	 */
-	/*
 	public function getActions($request, $actionArgs)
 	{
 
@@ -451,13 +452,12 @@ class ojsErcPlugin extends GenericPlugin
 		array_unshift($actions, $linkAction);
 
 		return $actions;
-	}*/
+	}
 
 	/**
 	 * @copydoc Plugin::manage() - https://docs.pkp.sfu.ca/dev/plugin-guide/en/settings#the-form-class 
 	 * Function needed for Plugin Settings. 
 	 */
-	/*
 	public function manage($args, $request)
 	{
 		switch ($request->getUserVar('verb')) {
@@ -482,7 +482,7 @@ class ojsErcPlugin extends GenericPlugin
 				}
 		}
 		return parent::manage($args, $request);
-	}*/
+	}
 
 	/**
 	 * Provide a name for this plugin (plugin gallery)

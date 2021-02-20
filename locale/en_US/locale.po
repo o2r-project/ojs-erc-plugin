@@ -82,3 +82,9 @@ msgstr "ojs-erc-plugin"
 
 msgid "plugins.generic.ojsErcPlugin.description"
 msgstr "Plugin for making (E)RC uploadable, viewable, manipulateable in the article view."
+
+msgid "plugins.generic.ojsErcPlugin.settings.serverURL.description"
+msgstr "Here you have to specify the o2r server URL you want to use."
+
+msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
+msgstr "URL to the o2r server"
