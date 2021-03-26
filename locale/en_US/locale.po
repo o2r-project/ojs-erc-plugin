@@ -88,3 +88,18 @@ msgstr "Here you have to specify the o2r server URL you want to use."
 
 msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
 msgstr "URL to the o2r server"
+
+msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
+msgstr "URL to the o2r server"
+
+msgid "plugins.generic.ojsErcPlugin.createErc"
+msgstr "ERC"
+
+msgid "plugins.generic.ojsErcPlugin.createErc.description"
+msgstr "Here you can create the ERC"
+
+msgid "plugins.generic.ojsErcPlugin.createErc.ErcId"
+msgstr "ERC ID"
+
+msgid "plugins.generic.ojsErcPlugin.createErc.ErcId.description"
+msgstr "Insert here the ERC Id"

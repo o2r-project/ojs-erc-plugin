@@ -25,7 +25,7 @@ class ojsErcPlugin extends GenericPlugin
 			*/
 
 			// Hooks for changing the frontent Submit an Article 3. Enter Metadata 
-			//HookRegistry::register('Templates::Submission::SubmissionMetadataForm::AdditionalMetadata', array($this, 'extendSubmissionMetadataFormTemplate'));
+			HookRegistry::register('Templates::Submission::SubmissionMetadataForm::AdditionalMetadata', array($this, 'extendSubmissionMetadataFormTemplate'));
 
 			// Hooks for changing the Metadata right before Schedule for Publication (not working yet)
 			//HookRegistry::register('Form::config::before', array($this, 'extendScheduleForPublication'));
@@ -39,9 +39,10 @@ class ojsErcPlugin extends GenericPlugin
 			// Templates::Article::Footer::PageFooter
 
 			// Hook for creating and setting a new field in the database 
-			//HookRegistry::register('Schema::get::publication', array($this, 'addToSchema'));
-			//HookRegistry::register('Publication::edit', array($this, 'editPublication')); // Take care, hook is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
+			HookRegistry::register('Schema::get::publication', array($this, 'addToSchema'));
+			HookRegistry::register('Publication::edit', array($this, 'editPublication')); // Take care, hook is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
 
+					
 			$request = Application::get()->getRequest();
 			$templateMgr = TemplateManager::getManager($request);
 
@@ -121,10 +122,9 @@ class ojsErcPlugin extends GenericPlugin
 	 * and the administrative unit if there is already a storage in the database. 
 	 * @param hook Templates::Submission::SubmissionMetadataForm::AdditionalMetadata
 	 */
-	/*
 	public function extendSubmissionMetadataFormTemplate($hookName, $params)
 	{
-		
+		/*
 		This way templates are loaded. 
 		Its important that the corresponding hook is activated. 
 		If you want to override a template you need to create a .tpl-file which is in the plug-ins template path which the same 
@@ -133,7 +133,7 @@ class ojsErcPlugin extends GenericPlugin
 		you have to store in in the plug-ins template path under this path 'submission/form/submissionMetadataFormFields.tpl'. 
 		Further details can be found here: https://docs.pkp.sfu.ca/dev/plugin-guide/en/templates
 		Where are templates located: https://docs.pkp.sfu.ca/pkp-theming-guide/en/html-smarty
-		
+		*/
 
 		$templateMgr = &$params[1];
 		$output = &$params[2];
@@ -146,51 +146,53 @@ class ojsErcPlugin extends GenericPlugin
 		$context = $request->getContext();
 
 		
-		Check if the user has entered an username in the plugin settings for the geonames API (https://www.geonames.org/login). 
-		The result is passed on accordingly to submissionMetadataFormFields.js as template variable. 
+		//Check if the user has entered an username in the plugin settings for the geonames API (https://www.geonames.org/login). 
+		//The result is passed on accordingly to submissionMetadataFormFields.js as template variable. 
 		
-		$usernameGeonames = $this->getSetting($context->getId(), 'usernameGeonames');
-		$templateMgr->assign('usernameGeonames', $usernameGeonames);
+		//$usernameGeonames = $this->getSetting($context->getId(), 'usernameGeonames');
+		//$templateMgr->assign('usernameGeonames', $usernameGeonames);
 
-		
+		/*
 		In case the user repeats the step "3. Enter Metadata" in the process 'Submit an Article' and comes back to this step to make changes again, 
 		the already entered data is read from the database, added to the template and displayed for the user.
 		Data is loaded from the database, passed as template variable to the 'submissionMetadataFormFiels.tpl' 
 	 	and requested from there in the 'submissionMetadataFormFields.js' to display coordinates in a map, the date and coverage information if available.
-		
+		*/
+
 		$publicationDao = DAORegistry::getDAO('PublicationDAO');
+
 		$submissionId = $request->getUserVar('submissionId');
 		$publication = $publicationDao->getById($submissionId);
 
-		$temporalProperties = $publication->getData('geoOJS::temporalProperties');
-		$spatialProperties = $publication->getData('geoOJS::spatialProperties');
-		$administrativeUnit = $publication->getData('coverage');
+		$ErcId = $publication->getData('ojsErcPlugin::ErcId');
+		//$spatialProperties = $publication->getData('geoOJS::spatialProperties');
+		//$administrativeUnit = $publication->getData('coverage');
 
 		// for the case that no data is available 
-		if ($temporalProperties === null) {
-			$temporalProperties = 'no data';
-		}
+		//if ($temporalProperties === null) {
+		//	$temporalProperties = 'no data';
+		//}
 
-		if ($spatialProperties === null || $spatialProperties === '{"type":"FeatureCollection","features":[],"administrativeUnits":{},"temporalProperties":{"unixDateRange":"not available","provenance":{"description":"not available","id":"not available"}}}') {
-			$spatialProperties = 'no data';
-		}
+		//if ($spatialProperties === null || $spatialProperties === '{"type":"FeatureCollection","features":[],"administrativeUnits":{},"temporalProperties":{"unixDateRange":"not available","provenance":{"description":"not available","id":"not available"}}}') {
+		//	$spatialProperties = 'no data';
+		//}
 
-		if (current($administrativeUnit) === '' || $administrativeUnit === '' || $administrativeUnit === null) {
-			$administrativeUnit = 'no data';
-		}
+		//if (current($administrativeUnit) === '' || $administrativeUnit === '' || $administrativeUnit === null) {
+		//	$administrativeUnit = 'no data';
+		//}
 
 		//assign data as variables to the template 
-		$templateMgr->assign('temporalPropertiesFromDb', $temporalProperties);
-		$templateMgr->assign('spatialPropertiesFromDb', $spatialProperties);
-		$templateMgr->assign('administrativeUnitFromDb', $administrativeUnit);
+		$templateMgr->assign('ErcIdFromDb', $ErcId);
+		//$templateMgr->assign('spatialPropertiesFromDb', $spatialProperties);
+		//$templateMgr->assign('administrativeUnitFromDb', $administrativeUnit);
 
-		// echo "TestTesTest"; // by echo a direct output is created on the page
+		echo "TestTesTest123"; // by echo a direct output is created on the page
 
 		// here the original template is extended by the additional template modified by geoOJS  
 		$output .= $templateMgr->fetch($this->getTemplateResource('submission/form/submissionMetadataFormFields.tpl'));
 
 		return false;
-	}*/
+	}
 
 	/**
 	 * Function which extends ArticleMain Template by geospatial properties if available. 
@@ -256,13 +258,12 @@ class ojsErcPlugin extends GenericPlugin
 	 * There are two further rows in the table one for the spatial properties, and one for the timestamp. 
 	 * @param hook Schema::get::publication
 	 */
-	/*
 	public function addToSchema($hookName, $params)
 	{
 		// possible types: integer, string, text 
 		$schema = $params[0];
 
-		$timestamp = '{
+		$ErcId = '{
 			"type": "string",
 			"multilingual": false,
 			"apiSummary": true,
@@ -270,9 +271,10 @@ class ojsErcPlugin extends GenericPlugin
 				"nullable"
 			]
 		}';
-		$timestampDecoded = json_decode($timestamp);
-		$schema->properties->{'geoOJS::temporalProperties'} = $timestampDecoded;
+		$ErcIdDecoded = json_decode($ErcId);
+		$schema->properties->{'ojsErcPlugin::ErcId'} = $ErcIdDecoded;
 
+		/*
 		$spatialProperties = '{
 			"type": "string",
 			"multilingual": false,
@@ -283,7 +285,8 @@ class ojsErcPlugin extends GenericPlugin
 		}';
 		$spatialPropertiesDecoded = json_decode($spatialProperties);
 		$schema->properties->{'geoOJS::spatialProperties'} = $spatialPropertiesDecoded;
-	}*/
+		*/
+	}
 
 	/**
 	 * Function which fills the new fields (created by the function addToSchema) in the schema. 
@@ -291,7 +294,7 @@ class ojsErcPlugin extends GenericPlugin
 	 * and requested from it in this php script by a POST-method. 
 	 * @param hook Publication::edit
 	 */
-	/*
+	
 	function editPublication(string $hookname, array $params)
 	{
 		$newPublication = $params[0];
@@ -301,9 +304,13 @@ class ojsErcPlugin extends GenericPlugin
 		$spatialProperties = $_POST['spatialProperties'];
 		$administrativeUnit = $_POST['administrativeUnit'];
 
+		$ErcId = $_POST['ErcId'];
+
 		$exampleTimestamp = '2020-08-12 11:00 AM - 2020-08-13 07:00 PM';
 		$exampleSpatialProperties = '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[7.516193389892579,51.94553466305084],[7.516193389892579,51.96447134091556],[7.56511688232422,51.96447134091556],[7.56511688232422,51.94553466305084],[7.516193389892579,51.94553466305084]]]},"properties":{"name":"TODO Administrative Unit"}}]}';
 		$exampleCoverageElement = 'TODO';
+
+		$testErcId = 'geQfc'; 
 
 		/*
 		If the element to store in the database is an element which is different in different languages 
@@ -324,11 +331,11 @@ class ojsErcPlugin extends GenericPlugin
 		*/
 
 		// null if there is no possibility to input data (metadata input before Schedule for Publication)
-		/*
+		
 		if ($spatialProperties !== null) {
-			$newPublication->setData('geoOJS::spatialProperties', $spatialProperties);
+			$newPublication->setData('ojsErcPlugin::ErcId', $ErcId);
 		}
-
+		/*
 		if ($temporalProperties !== null && $temporalProperties !== "") {
 			$newPublication->setData('geoOJS::temporalProperties', $temporalProperties);
 		}
@@ -351,7 +358,7 @@ class ojsErcPlugin extends GenericPlugin
 		}
 		$newPublication->setData('Textfeld', $yourdata3, $localeKey);
 		*/
-	//}
+	}
 
 	/**
 	 * Not working function to edit a form before Schedule for Publication. 
