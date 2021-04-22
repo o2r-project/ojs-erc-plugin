@@ -32,7 +32,7 @@ class ojsErcPlugin extends GenericPlugin
 			//HookRegistry::register('Template::Workflow::Publication', array($this, 'extendScheduleForPublication2'));
 
 			// Hook for changing the article page 
-			//HookRegistry::register('Templates::Article::Main', array(&$this, 'extendArticleMainTemplate'));
+			HookRegistry::register('Templates::Article::Main', array(&$this, 'extendArticleMainTemplate'));
 			//HookRegistry::register('Templates::Article::Details', array(&$this, 'extendArticleDetailsTemplate'));
 			// Templates::Article::Main 
 			// Templates::Article::Details
@@ -42,9 +42,14 @@ class ojsErcPlugin extends GenericPlugin
 			HookRegistry::register('Schema::get::publication', array($this, 'addToSchema'));
 			HookRegistry::register('Publication::edit', array($this, 'editPublication')); // Take care, hook is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
 
-					
+			HookRegistry::register('ArticleHandler::view::galley', array($this, 'articleViewCallback'), HOOK_SEQUENCE_LATE);
+			HookRegistry::register('ArticleHandler::download', array($this, 'articleDownloadCallback'), HOOK_SEQUENCE_LATE);
+
+
 			$request = Application::get()->getRequest();
 			$templateMgr = TemplateManager::getManager($request);
+
+			
 
 			/*
 			In previous OJS versions, there was an option in the config.inc.php to enable or disable CDN. 
@@ -200,9 +205,12 @@ class ojsErcPlugin extends GenericPlugin
 	 * and requested from there in the 'article_details.js' to display coordinates in a map, the date and coverage information if available.
 	 * @param hook Templates::Article::Main
 	 */
-	/*
+	
 	public function extendArticleMainTemplate($hookName, $params)
 	{
+		$newPublication = $params[0];
+		$params = $params[2];
+		/*
 		$templateMgr = &$params[1];
 		$output = &$params[2];
 
@@ -236,7 +244,8 @@ class ojsErcPlugin extends GenericPlugin
 		$output .= $templateMgr->fetch($this->getTemplateResource('frontend/objects/article_details.tpl'));
 
 		return false;
-	}*/
+		*/
+	}
 
 	/**
 	 * Function which extends the ArticleMain Template by a download button for the geospatial Metadata as geoJSON. 
@@ -332,9 +341,114 @@ class ojsErcPlugin extends GenericPlugin
 
 		// null if there is no possibility to input data (metadata input before Schedule for Publication)
 		
-		if ($spatialProperties !== null) {
+		//$newPublication->setData('galleys', 'test');
+
+
+		/*
+		If the user entered an ErcId, an html with the id in it is created, this html is uploaded as file and submission file and attachted to an galley. 
+		*/
+		if ($ErcId !== null) {
 			$newPublication->setData('ojsErcPlugin::ErcId', $ErcId);
+		
+			// get path were the initial html file for the galley is stored
+			$pathHtmlFile = $this->getPluginPath() . '/ERCGalleys/ERCGalleyInitial.html'; 
+			
+			$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
+			$pathFinalHtmlFile = $this->getPluginPath() . '/ERCGalleys' . '/' . $ErcHtmlFileName;
+
+
+
+			/* 
+			create html with the ErcId in it 
+			*/
+			$dom = new DOMDocument;
+			$dom->loadHTMLFile($pathHtmlFile);
+			$xpath = new DOMXPath($dom);
+			$pDivs = $xpath->query(".//div[@class='ErcId']");
+			
+			foreach ($pDivs as $div) {
+				$div->setAttribute('value', $ErcId); 
+			}
+			$dom->saveHTMLFile($this->getPluginPath() . '/ERCGalleys' . '/' . $ErcHtmlFileName);
+
+
+
+			/*
+			Create new submission file.
+			Therefore first a file is uploaded an than this file is used to create a submission file.  
+			*/
+			$request = Application::get()->getRequest();
+			$context = $request->getContext();
+			$contextId = $context->getId(); 
+		
+			// id of the new created publication 
+			$submissionId = $newPublication->_data['id']; 
+
+			// get path were the submission files are stored for this new submission 
+			$pathSubmissionFiles = Services::get('submissionFile')->getSubmissionDir($contextId, $submissionId);
+
+			// store/ create new file 
+			$fileId = Services::get('file')->add($pathFinalHtmlFile, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
+
+			// get userId 
+			$userId = Application::get()->getRequest()->getUser()->getId(); 
+
+			// get language properties 
+			$primaryLocale = $request->getContext()->getPrimaryLocale();
+			$allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
+	
+			// set properties for the new submission file 
+			$params = [
+				'fileStage' => 2,
+				'fileId' => $fileId,
+				'name' => [
+					$primaryLocale => 'ERCGalley-' . $ErcId . '.html',
+				],
+				'submissionId' => $submissionId,
+				'uploaderUserId' => $userId,
+				'genreId' => 1
+			];
+
+			// proof properties on errors 
+			$errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+
+			// create the new submission file 
+			if (empty($errors)) {
+				$submissionFile = DAORegistry::getDao('SubmissionFileDAO')->newDataObject();
+				$submissionFile->setAllData($params);
+				$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
+			}
+		
+
+
+			/*
+			Create galley with the before uploaded submission file 
+			*/ 
+			$submissionFileId = $submissionFile->_data['id']; 
+			$articleGalleyDAO = DAORegistry::getDAO('ArticleGalleyDAO');
+			$galley = $articleGalleyDAO->newDataObject();
+
+			//$galley->setSubmissionFileId(3); 
+			$galley->setData('submissionFileId', $submissionFileId); 
+			$galley->setLocale('en_US');
+			//$galley->setId($id);
+			$galley->setData('publicationId', $submissionId);
+			//$galley->setPublication($newPublication);
+			$galley->setLabel('ERC');
+			//$galley->setData('submission_file_id', 'erstesERC');
+			$galley->setSequence(1);
+			$galley->setData('urlPath', 'ErcId-' . $ErcId);
+			//$galley->setDataObjectId($id);
+			//$articleTombstone->stampDateDeleted();
+			//$articleTombstone->setSetSpec($setSpec);
+			//$articleTombstone->setSetName($section->getLocalizedTitle());
+			//$articleTombstone->setOAIIdentifier($oaiIdentifier);
+			//$articleTombstone->setOAISetObjectsIds($OAISetObjectsIds);
+			$articleGalleyDAO->insertObject($galley);
+			//$reviewRoundDao->insertObject($reviewRound);
 		}
+
+
 		/*
 		if ($temporalProperties !== null && $temporalProperties !== "") {
 			$newPublication->setData('geoOJS::temporalProperties', $temporalProperties);

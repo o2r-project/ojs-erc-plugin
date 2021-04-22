@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>JavaScript - read JSON from URL</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+</head>
+The ERC galley 
+
+<body>
+    <div class="ErcId" id="ErcId"></div>
+    <div class="test" id="test"></div>
+
+    <script>
+
+        /*
+        var settings = {
+            'cache': false,
+            'dataType': "jsonp",
+            'jsonpCallback': 'callback',
+            "async": true,
+            "crossDomain": true,
+            "url": "https://o2r.uni-muenster.de/api/v1/compendium/q7Eje",
+            "method": "GET",
+            "headers": {
+                "accept": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            }
+        }
+
+        $.ajax(settings).done(function (response) {
+            console.log(response);
+
+        });*/
+
+        /*
+        $.ajax({
+            type: "GET",
+            url: "https://o2r.uni-muenster.de/api/v1/compendium/q7Eje/",
+            success: function (response) {
+                console.log(response)
+            },
+            error: function (err) {
+
+            }
+        });*/
+
+        /*
+        $.ajax({
+            type:"GET",
+            url: 'https://o2r.uni-muenster.de/api/v1/compendium/q7Eje/',
+            dataType: 'json',
+            success: function (data) {
+                console.log(data);
+                $('test').html(data);
+            }
+        });*/
+
+        /*
+        var settings = {
+            "url": "https://o2r.uni-muenster.de/api/v1/compendium/q7Eje",
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings).done(function (response) {
+            console.log(response);
+        });*/
+
+        var url = "https://o2r.uni-muenster.de/api/v1/compendium/q7Eje";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url);
+
+        xhr.setRequestHeader("Accept", "application/json");
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                console.log(xhr.status);
+                console.log(xhr.responseText);
+            }
+        };
+
+        xhr.send();
+
+
+
+
+        var url = "https://o2r.uni-muenster.de/api/v1/user/";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url);
+
+        xhr.setRequestHeader("Accept", "application/json");
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                console.log(xhr.status);
+                console.log(xhr.responseText);
+                document.getElementById("test").innerHTML = xhr.responseText;
+            }
+        };
+
+        xhr.send();
+
+
+    </script>
+
+</body>
+
+</html>
