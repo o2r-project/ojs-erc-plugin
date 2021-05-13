@@ -1,10 +1,12 @@
 <?php
 // import of genericPlugin
 import('lib.pkp.classes.plugins.GenericPlugin');
+import('lib.pkp.classes.submission.SubmissionFile');
 
 use phpDocumentor\Reflection\Types\Null_;
 use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldHTML; // needed for function extendScheduleForPublication
+use PKP\submission\SubmissionFile;
 
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
@@ -351,12 +353,10 @@ class ojsErcPlugin extends GenericPlugin
 			$newPublication->setData('ojsErcPlugin::ErcId', $ErcId);
 		
 			// get path were the initial html file for the galley is stored
-			$pathHtmlFile = $this->getPluginPath() . '/ERCGalleys/ERCGalleyInitial.html'; 
+			$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
 			
 			$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
-			$pathFinalHtmlFile = $this->getPluginPath() . '/ERCGalleys' . '/' . $ErcHtmlFileName;
-
-
+			$pathFinalHtmlFile = $this->getPluginPath() . '/' . $ErcHtmlFileName;
 
 			/* 
 			create html with the ErcId in it 
@@ -364,14 +364,30 @@ class ojsErcPlugin extends GenericPlugin
 			$dom = new DOMDocument;
 			$dom->loadHTMLFile($pathHtmlFile);
 			$xpath = new DOMXPath($dom);
-			$pDivs = $xpath->query(".//div[@class='ErcId']");
+
+			/*
+			$pDivs = $xpath->query(".//script[@id='ErcId']");
 			
 			foreach ($pDivs as $div) {
 				$div->setAttribute('value', $ErcId); 
 			}
-			$dom->saveHTMLFile($this->getPluginPath() . '/ERCGalleys' . '/' . $ErcHtmlFileName);
 
+			$dom->saveHTMLFile($this->getPluginPath() . '/' . $ErcHtmlFileName);
 
+			*/ 
+
+			$doc = new DomDocument;
+			$doc->formatOutput = true;
+
+			// We need to validate our document before referring to the id
+			$doc->loadHTMLFile($pathHtmlFile);
+		
+			$doc->getElementById("ErcId")->nodeValue = '';
+			$doc->getElementById("ErcId")->nodeValue = 'let ojsView = true let ercID= "test"';
+
+			$doc->saveHTMLFile($this->getPluginPath() . '/' . $ErcHtmlFileName);
+
+			
 
 			/*
 			Create new submission file.
@@ -389,6 +405,8 @@ class ojsErcPlugin extends GenericPlugin
 
 			// store/ create new file 
 			$fileId = Services::get('file')->add($pathFinalHtmlFile, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
+			
+			unlink($this->getPluginPath() . '/' . $ErcHtmlFileName); 
 
 			// get userId 
 			$userId = Application::get()->getRequest()->getUser()->getId(); 
@@ -397,9 +415,10 @@ class ojsErcPlugin extends GenericPlugin
 			$primaryLocale = $request->getContext()->getPrimaryLocale();
 			$allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
 	
+	
 			// set properties for the new submission file 
 			$params = [
-				'fileStage' => 2,
+				'fileStage' => 2, // better use the constant PKP\submission\SubmissionFile::SUBMISSION_FILE_SUBMISSION, but dont know how 
 				'fileId' => $fileId,
 				'name' => [
 					$primaryLocale => 'ERCGalley-' . $ErcId . '.html',
@@ -419,8 +438,7 @@ class ojsErcPlugin extends GenericPlugin
 				$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
 			}
 		
-
-
+	
 			/*
 			Create galley with the before uploaded submission file 
 			*/ 
