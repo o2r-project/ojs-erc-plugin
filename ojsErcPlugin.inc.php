@@ -20,6 +20,40 @@ class ojsErcPlugin extends GenericPlugin
 		// important to check if plugin is enabled before registering the hook, cause otherwise plugin will always run no matter enabled or disabled! 
 		if ($success && $this->getEnabled()) {
 
+  
+			$o2rBuildAlreadyThere = is_dir($this->getPluginPath() . '/' . 'build');
+
+			if ($o2rBuildAlreadyThere === false) {
+				$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.4.0/build.zip'; // url to the build 
+
+				$file_name = basename($url);
+
+				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+
+				$pathZip = $temporaryDirectory . '/' . $file_name; // path in the temporary directory
+				$pathNoZip = $this->getPluginPath() . '/' . 'build'; // final path in the plugin structure 
+
+				// store unzipped build at final destination 
+				if(file_put_contents($pathZip, file_get_contents($url))) {
+
+					$zip = new ZipArchive;
+					if ($zip->open($pathZip) === TRUE) {
+  					  	$zip->extractTo($pathNoZip);
+  					  	$zip->close();
+
+						unlink($pathZip); // delete temporary file 
+
+					} else {
+ 			 	  //echo 'Fehler';
+					}
+				}
+				else {
+		   	 	//echo "File downloading failed.";
+				}
+
+			}
+	
+
 			/* 
 			Hooks are the possibility to intervene the application. By the corresponding function which is named in the HookRegistery, the application
 			can be changed. 
@@ -385,9 +419,9 @@ class ojsErcPlugin extends GenericPlugin
 			$doc->getElementById("ErcId")->nodeValue = '';
 			$doc->getElementById("ErcId")->nodeValue = 'let ojsView = true let ercID= "test"';
 
-			$doc->saveHTMLFile($this->getPluginPath() . '/' . $ErcHtmlFileName);
+			$doc->saveHTMLFile(sys_get_temp_dir() . '/' . $ErcHtmlFileName); // save file to temporary directory 
 
-			
+		
 
 			/*
 			Create new submission file.
@@ -406,7 +440,7 @@ class ojsErcPlugin extends GenericPlugin
 			// store/ create new file 
 			$fileId = Services::get('file')->add($pathFinalHtmlFile, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
 			
-			unlink($this->getPluginPath() . '/' . $ErcHtmlFileName); 
+			unlink(sys_get_temp_dir() . '/' . $ErcHtmlFileName); 
 
 			// get userId 
 			$userId = Application::get()->getRequest()->getUser()->getId(); 
