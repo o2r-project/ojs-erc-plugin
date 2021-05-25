@@ -27,7 +27,7 @@ class ojsErcPluginSettingsForm extends Form
      * can have different settings.
      */
     public function initData()
-    {
+    {        
         $contextId = Application::get()->getRequest()->getContext()->getId();
         $this->setData('serverURL', $this->plugin->getSetting($contextId, 'serverURL'));
         parent::initData();
@@ -40,6 +40,23 @@ class ojsErcPluginSettingsForm extends Form
     {
         $this->readUserVars(['serverURL']);
         parent::readInputData();
+
+        /*
+		Update the config.js of the build in terms of the baseURL specified in the plugin settings. 
+		*/
+		$pathConfigJs = $this->plugin->pluginPath . '/build/config.js'; 
+
+		$rawConfigFile = fopen($pathConfigJs, "r+");
+		$readConfigFile = fread($rawConfigFile, filesize($pathConfigJs)); 
+
+		$baseUrlSpecifiedInSettings = $this->_data[serverURL]; 
+
+		preg_match('/"baseUrl":\s"[^,]*"/', $readConfigFile, $configOld);        
+		$configNew = '"baseUrl": "' . $baseUrlSpecifiedInSettings . '"'; 
+		$adaptedConfig = str_replace($configOld[0], $configNew, $readConfigFile);
+
+		file_put_contents($pathConfigJs, $adaptedConfig);
+		fclose($rawConfigFile);
     }
 
     /**

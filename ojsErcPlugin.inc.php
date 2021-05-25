@@ -21,10 +21,13 @@ class ojsErcPlugin extends GenericPlugin
 		if ($success && $this->getEnabled()) {
 
   
+			/*
+			Load the current build of the o2r api, if it is not already there 
+			*/
 			$o2rBuildAlreadyThere = is_dir($this->getPluginPath() . '/' . 'build');
 
 			if ($o2rBuildAlreadyThere === false) {
-				$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.4.0/build.zip'; // url to the build 
+				$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.5.1/build.zip'; // url to the build 
 
 				$file_name = basename($url);
 
@@ -44,15 +47,88 @@ class ojsErcPlugin extends GenericPlugin
 						unlink($pathZip); // delete temporary file 
 
 					} else {
- 			 	  //echo 'Fehler';
+ 			 	  	//echo 'error';
 					}
 				}
 				else {
 		   	 	//echo "File downloading failed.";
 				}
 
+				
+				/*
+				Update the config.js of the build in terms of the baseURL specified in the plugin settings and set the ojsView to true. 
+				It is here important to differ between two baseUrl the "baseUrl" which is the URL of the OJS server and 
+				"baseUrlErc" which is the BaseUrl of the Erc server. 
+				*/
+				$pathConfigJs = $this->getPluginPath() . '/build/config.js'; 
+
+				$rawConfigFile = fopen($pathConfigJs, "r+");
+				$readConfigFile = fread($rawConfigFile, filesize($pathConfigJs)); 
+
+				$contextId = Application::get()->getRequest()->getContext()->getId();
+				$baseUrlErcFromSettings = $this->getSetting($contextId, 'serverURL'); 
+
+				$baseUrlErcStandard= "https://o2r.uni-muenster.de/api/v1/"; 
+
+				// if there is no url available from the plugin settings the standard url is used 
+				if ($baseUrlErcFromSettings === null || $baseUrlErcFromSettings === '') {
+					$baseUrlErc = $baseUrlErcStandard;
+				}
+				else {
+					$baseUrlErc = $baseUrlErcFromSettings;
+				}
+
+				preg_match('/"baseUrl":\s"[^,]*"/', $readConfigFile, $configOld);        
+				$configNew = '"baseUrl": "' . $baseUrlErc . '"'; 
+				$adaptedConfig = str_replace($configOld[0], $configNew, $readConfigFile);
+
+				$adaptedOjsView = str_replace("false", "true", $adaptedConfig);
+
+				file_put_contents($pathConfigJs, $adaptedOjsView);
+				fclose($rawConfigFile);
+
+				/*
+				Update the index.html of the build in terms of the users path for the css-, js-, log-, and manifest-file(s). 
+				*/
+				$request = Application::get()->getRequest();
+				$baseUrl = $request->getBaseUrl();
+
+				$pathHtml = $this->getPluginPath() . '/build/index.html'; 
+
+				$rawHtmlFile = fopen($pathHtml, "r+");
+				$readHtmlFile = fread($rawHtmlFile, filesize($pathHtml)); 
+
+				preg_match('"\.\/static\/css\/[^=]*\.chunk\.css"', $readHtmlFile, $staticCssOld);
+				$staticCssNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticCssOld[0], 1); 
+				$adaptedCss = str_replace($staticCssOld[0], $staticCssNew, $readHtmlFile);
+					
+				preg_match('"\.\/static\/css\/main[^=]*\.chunk\.css"', $readHtmlFile, $staticCssMainOld);
+				$staticCssMainNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticCssMainOld[0], 1); 
+				$adaptedCssMain = str_replace($staticCssMainOld[0], $staticCssMainNew, $adaptedCss);
+
+				preg_match('"\.\/static\/js\/[^=]*\.chunk\.js"', $readHtmlFile, $staticJsOld);
+				$staticJsNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticJsOld[0], 1); 
+				$adaptedJs = str_replace($staticJsOld[0], $staticJsNew, $adaptedCssMain);
+
+				preg_match('"\.\/static\/js\/main[^=]*\.chunk\.js"', $readHtmlFile, $staticJsMainOld);
+				$staticJsMainNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticJsMainOld[0], 1); 
+				$adaptedMainJs = str_replace($staticJsMainOld[0], $staticJsMainNew, $adaptedJs);
+
+				preg_match('"\.\/logo\.png"', $readHtmlFile, $logoOld);
+				$logoNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($logoOld[0], 1); 
+				$adaptedLogo = str_replace($logoOld[0], $logoNew, $adaptedMainJs);
+
+				preg_match('"\.\/manifest\.json"', $readHtmlFile, $manifestOld);
+				$manifestNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($manifestOld[0], 1); 
+				$adaptedManifest = str_replace($manifestOld[0], $manifestNew, $adaptedLogo);
+
+				preg_match('"\.\/config\.js"', $readHtmlFile, $configOld);
+				$configNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($configOld[0], 1); 
+				$adaptedConfig = str_replace($configOld[0], $configNew, $adaptedManifest);
+
+				file_put_contents($pathHtml, $adaptedConfig);
+				fclose($rawHtmlFile);
 			}
-	
 
 			/* 
 			Hooks are the possibility to intervene the application. By the corresponding function which is named in the HookRegistery, the application
@@ -227,7 +303,7 @@ class ojsErcPlugin extends GenericPlugin
 		//$templateMgr->assign('spatialPropertiesFromDb', $spatialProperties);
 		//$templateMgr->assign('administrativeUnitFromDb', $administrativeUnit);
 
-		echo "TestTesTest123"; // by echo a direct output is created on the page
+		// echo "TestTesTest123"; // by echo a direct output is created on the page
 
 		// here the original template is extended by the additional template modified by geoOJS  
 		$output .= $templateMgr->fetch($this->getTemplateResource('submission/form/submissionMetadataFormFields.tpl'));
@@ -390,38 +466,30 @@ class ojsErcPlugin extends GenericPlugin
 			$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
 			
 			$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
-			$pathFinalHtmlFile = $this->getPluginPath() . '/' . $ErcHtmlFileName;
 
-			/* 
-			create html with the ErcId in it 
-			*/
-			$dom = new DOMDocument;
-			$dom->loadHTMLFile($pathHtmlFile);
-			$xpath = new DOMXPath($dom);
-
-			/*
-			$pDivs = $xpath->query(".//script[@id='ErcId']");
 			
-			foreach ($pDivs as $div) {
-				$div->setAttribute('value', $ErcId); 
-			}
+			/*
+			Update the index.html of the build in terms of the ErcId and store it at a temporary location  
+			*/
+			$pathIndexHtml = $this->getPluginPath() . '/build/index.html'; 
 
-			$dom->saveHTMLFile($this->getPluginPath() . '/' . $ErcHtmlFileName);
+			$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+			$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $ErcHtmlFileName; // path in the temporary directory
 
-			*/ 
+			copy($pathIndexHtml, $temporaryIndexHtmlPath);  
 
-			$doc = new DomDocument;
-			$doc->formatOutput = true;
+			$rawHtmlFile = fopen($temporaryIndexHtmlPath, "r+");
+			$readHtmlFile = fread($rawHtmlFile, filesize($temporaryIndexHtmlPath)); 
 
-			// We need to validate our document before referring to the id
-			$doc->loadHTMLFile($pathHtmlFile);
-		
-			$doc->getElementById("ErcId")->nodeValue = '';
-			$doc->getElementById("ErcId")->nodeValue = 'let ojsView = true let ercID= "test"';
+			$positionConfigJs = strrpos($readHtmlFile, 'config.js"></script>'); // The ErcId must be inserted after the config.js, to overwrite the Id set in the config.js
+			$positionConfigErcID = $positionConfigJs + 20; 
 
-			$doc->saveHTMLFile(sys_get_temp_dir() . '/' . $ErcHtmlFileName); // save file to temporary directory 
+			$scriptErcId = '<script>config.ercID =  "' . $ErcId . '"; </script>'; 
 
-		
+			$adaptedErcId = substr_replace($readHtmlFile, $scriptErcId, $positionConfigErcID, 0);
+
+			file_put_contents($temporaryIndexHtmlPath, $adaptedErcId);
+			fclose($rawHtmlFile);
 
 			/*
 			Create new submission file.
@@ -438,8 +506,9 @@ class ojsErcPlugin extends GenericPlugin
 			$pathSubmissionFiles = Services::get('submissionFile')->getSubmissionDir($contextId, $submissionId);
 
 			// store/ create new file 
-			$fileId = Services::get('file')->add($pathFinalHtmlFile, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
+			$fileId = Services::get('file')->add($temporaryIndexHtmlPath, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
 			
+			$test = sys_get_temp_dir() . '/' . $ErcHtmlFileName; 
 			unlink(sys_get_temp_dir() . '/' . $ErcHtmlFileName); 
 
 			// get userId 
@@ -472,7 +541,6 @@ class ojsErcPlugin extends GenericPlugin
 				$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
 			}
 		
-	
 			/*
 			Create galley with the before uploaded submission file 
 			*/ 
@@ -489,7 +557,7 @@ class ojsErcPlugin extends GenericPlugin
 			$galley->setLabel('ERC');
 			//$galley->setData('submission_file_id', 'erstesERC');
 			$galley->setSequence(1);
-			$galley->setData('urlPath', 'ErcId-' . $ErcId);
+			$galley->setData('urlPath', 'erc-' . $ErcId);
 			//$galley->setDataObjectId($id);
 			//$articleTombstone->stampDateDeleted();
 			//$articleTombstone->setSetSpec($setSpec);
