@@ -91,40 +91,44 @@ class ojsErcPlugin extends GenericPlugin
 				$request = Application::get()->getRequest();
 				$baseUrl = $request->getBaseUrl();
 
+				$pluginPath = $this->getPluginPath(); 
 				$pathHtml = $this->getPluginPath() . '/build/index.html'; 
 
 				$rawHtmlFile = fopen($pathHtml, "r+");
 				$readHtmlFile = fread($rawHtmlFile, filesize($pathHtml)); 
 
-				preg_match('"\.\/static\/css\/[^=]*\.chunk\.css"', $readHtmlFile, $staticCssOld);
-				$staticCssNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticCssOld[0], 1); 
-				$adaptedCss = str_replace($staticCssOld[0], $staticCssNew, $readHtmlFile);
-					
-				preg_match('"\.\/static\/css\/main[^=]*\.chunk\.css"', $readHtmlFile, $staticCssMainOld);
-				$staticCssMainNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticCssMainOld[0], 1); 
-				$adaptedCssMain = str_replace($staticCssMainOld[0], $staticCssMainNew, $adaptedCss);
+				/**
+				 * Function that updates for a html file for all given regular expressions all paths concerning basUrl and pluginPath. 
+				 */
+				function updatePath($regularExpressions, $readHtmlFile, $baseUrl, $pluginPath)
+  				{
+					$adaptedHtml = $readHtmlFile;
 
-				preg_match('"\.\/static\/js\/[^=]*\.chunk\.js"', $readHtmlFile, $staticJsOld);
-				$staticJsNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticJsOld[0], 1); 
-				$adaptedJs = str_replace($staticJsOld[0], $staticJsNew, $adaptedCssMain);
+					foreach ($regularExpressions as $key => $value) {
 
-				preg_match('"\.\/static\/js\/main[^=]*\.chunk\.js"', $readHtmlFile, $staticJsMainOld);
-				$staticJsMainNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($staticJsMainOld[0], 1); 
-				$adaptedMainJs = str_replace($staticJsMainOld[0], $staticJsMainNew, $adaptedJs);
+						$oldHtmlFile = $adaptedHtml; 
 
-				preg_match('"\.\/logo\.png"', $readHtmlFile, $logoOld);
-				$logoNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($logoOld[0], 1); 
-				$adaptedLogo = str_replace($logoOld[0], $logoNew, $adaptedMainJs);
+						$test = $regularExpressions[$i]; 
 
-				preg_match('"\.\/manifest\.json"', $readHtmlFile, $manifestOld);
-				$manifestNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($manifestOld[0], 1); 
-				$adaptedManifest = str_replace($manifestOld[0], $manifestNew, $adaptedLogo);
+						preg_match($value, $oldHtmlFile, $oldPath);
+					   	$newPath = $baseUrl . '/' . $pluginPath . '/build' . substr($oldPath[0], 1); 
+					   	$adaptedHtml = str_replace($oldPath[0], $newPath, $oldHtmlFile);
+					}
 
-				preg_match('"\.\/config\.js"', $readHtmlFile, $configOld);
-				$configNew = $baseUrl . '/' . $this->getPluginPath() . '/build' . substr($configOld[0], 1); 
-				$adaptedConfig = str_replace($configOld[0], $configNew, $adaptedManifest);
+					return $adaptedHtml; 
+				}
 
-				file_put_contents($pathHtml, $adaptedConfig);
+				$regularExpressions = array(
+					'staticCss' => '"\.\/static\/css\/[^=]*\.chunk\.css"',
+					'staticCssMain' => '"\.\/static\/css\/main[^=]*\.chunk\.css"',
+					'staticJs' => '"\.\/static\/js\/[^=]*\.chunk\.js"',
+					'staticJsMain' => '"\.\/static\/js\/main[^=]*\.chunk\.js"', 
+					'logo' => '"\.\/logo\.png"', 
+					'manifest' => '"\.\/manifest\.json"', 
+					'configJs' => '"\.\/config\.js"', 
+				);
+
+				file_put_contents($pathHtml, updatePath($regularExpressions, $readHtmlFile, $baseUrl, $pluginPath));
 				fclose($rawHtmlFile);
 			}
 
