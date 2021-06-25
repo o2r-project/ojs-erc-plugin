@@ -20,6 +20,15 @@ class ojsErcPlugin extends GenericPlugin
 		// important to check if plugin is enabled before registering the hook, cause otherwise plugin will always run no matter enabled or disabled! 
 		if ($success && $this->getEnabled()) {
 
+			#$request = Application::getRequest();
+			#$journal = $request->getJournal();
+		
+			#$this->setParent('defaultthemeplugin');
+
+			#$this->removeOption('typography');
+
+			#$baseColour = $this->getOption('baseColour');
+
 			/*
 			Load the current build of the o2r api, if it is not already there 
 			*/
@@ -150,6 +159,11 @@ class ojsErcPlugin extends GenericPlugin
 		}
 		return $success;
 	}
+
+	public function init() {
+		$baseColour = $this->getOption('baseColour');
+	}
+	
 
 	/**
 	 * Function which extends the submissionMetadataFormFields template and adds template variables concerning temporal- and spatial properties 
