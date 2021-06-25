@@ -16,16 +16,13 @@ msgid "plugins.generic.ojsErcPlugin.name"
 msgstr "ojs-erc-plugin"
 
 msgid "plugins.generic.ojsErcPlugin.description"
-msgstr "Plugin for making (E)RC uploadable, viewable, manipulateable in the article view."
+msgstr "Plugin for making ERC uploadable, viewable, manipulateable in OJS."
 
 msgid "plugins.generic.ojsErcPlugin.settings.serverURL.description"
-msgstr "Here you have to specify the o2r server URL you want to use."
+msgstr "Specify the o2r reproducibility service URL."
 
 msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
-msgstr "URL to the o2r server"
-
-msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
-msgstr "URL to the o2r server"
+msgstr "URL to the o2r reproducibility service"
 
 msgid "plugins.generic.ojsErcPlugin.createErc"
 msgstr "ERC"
@@ -37,4 +34,4 @@ msgid "plugins.generic.ojsErcPlugin.createErc.ErcId"
 msgstr "ERC ID"
 
 msgid "plugins.generic.ojsErcPlugin.createErc.ErcId.description"
-msgstr "Insert here the ERC Id"
+msgstr "Insert the ERC identifier"
