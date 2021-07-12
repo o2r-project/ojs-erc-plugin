@@ -1,0 +1,108 @@
+name: CI test with cypress
+
+on:
+  push:
+    branches:
+    - master
+  workflow_dispatch:
+
+jobs: 
+  build_OJS:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.16.0
+
+      - name: Setup PHP with extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          extensions: pgsql, xml, mbstring, intl 
+
+
+      - name: tools installation
+        run: |
+          
+          sudo apt-get update
+          sudo apt-get -qq install postgresql
+          psql -V
+          sudo service postgresql start
+
+      - name: Get OJS from Github
+        run: | 
+          # In case of previous folder. We want a fresh install
+          rm -rf ojs
+          git clone https://github.com/pkp/ojs.git
+
+      - name: Get OJS submodules
+        run:  |
+          cd ojs
+          git submodule update --init --recursive
+          cp config.TEMPLATE.inc.php config.inc.php
+
+      - name: Setup PostgreSQL
+        run:  |
+          sudo -u postgres createuser -d ojs 
+          sudo -u postgres createdb -O ojs ojs_db
+          cd ojs
+          sudo perl -i  -0pe  's/\[database\]\n\n.+((\n.+){3})\n.+/\[database\]\n\ndriver = postgres\1\nname = ojs_db/g' config.inc.php
+
+      - name: Composer runs
+        run: |
+          cd ojs
+          composer --working-dir=lib/pkp update
+          composer --working-dir=plugins/paymethod/paypal update
+          composer --working-dir=plugins/generic/citationStyleLanguage update
+      
+      - name: npm install
+        run: |
+          cd ojs
+          npm install --save-dev cypress
+          sudo npm install
+          sudo npm build 
+          sudo npm audit fix
+          
+
+      - name: Copy test and commands from OJS into cypress folder
+        run: | 
+          #Getting a few finished tests from OJS to verify our cypress runs 
+          sudo cp ./ojs/cypress/tests/data/10-Installation.spec.js ./cypress/10-Installation.spec.js
+          sudo cp ./ojs/cypress/tests/data/20-CreateContext.spec.js ./cypress/20-CreateContext.spec.js
+          sudo cp ./ojs/lib/pkp/cypress/support/commands.js ./cypress/support/commands.js
+          ps aux | grep php
+          ls
+        
+      #- name: Run Cypress
+      #  run: |
+      #    php -S localhost:8080 -t ./ojs >& access.log &
+      #    ps aux | grep php
+      #    cd cypress
+      #    sudo docker run  -v $PWD:/ojs -w /ojs --name ojs_erc_cypress --entrypoint=cypress cypress/included:7.3.0 run --config-file cypress.json --headless --browser chrome --spec "10-Installation.spec.js"
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v2
+        #env: 
+        #    CYPRESS_host: api.dev.local
+        #    CYPRESS_port: port=8080
+        with:
+          wait-on: http://localhost:8080
+          install: true
+          spec: ./cypress/10-Installation.spec.js
+          working-directory: ojs
+          build: npm run build  
+          start: php -S localhost:8080 
+
+      #- name: Run Cypresstest 
+      #  run: | 
+      #    cd ojs
+      #    sudo apt-get install -y xvfb libsm6 libxrender1 libfontconfig1
+      #    sudo node_modules/.bin/cypress install
+      #    sudo ps -ef | grep Xvfb | grep -v grep | awk '{print $2}' | xargs kill -9
+      #    sudo node_modules/.bin/cypress run --env '{"baseurl":"http://localhost:8080"}' --spec "cypress/10-Installation.spec.js"
+      #    sudo node_modules/.bin/cypress run  --env '{"baseurl":"http://localhost:8080"}' --spec "cypress/20-CreateContext.spec.js"
