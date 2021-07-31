@@ -1,26 +1,27 @@
 {
   "files": {
-    "main.css": "./static/css/main.5b4a0fad.chunk.css",
-    "main.js": "./static/js/main.e1feb570.chunk.js",
-    "main.js.map": "./static/js/main.e1feb570.chunk.js.map",
-    "runtime-main.js": "./static/js/runtime-main.1cd5c833.js",
-    "runtime-main.js.map": "./static/js/runtime-main.1cd5c833.js.map",
-    "static/css/2.48fcd7aa.chunk.css": "./static/css/2.48fcd7aa.chunk.css",
-    "static/js/2.839101b7.chunk.js": "./static/js/2.839101b7.chunk.js",
-    "static/js/2.839101b7.chunk.js.map": "./static/js/2.839101b7.chunk.js.map",
-    "index.html": "./index.html",
-    "static/css/2.48fcd7aa.chunk.css.map": "./static/css/2.48fcd7aa.chunk.css.map",
-    "static/css/main.5b4a0fad.chunk.css.map": "./static/css/main.5b4a0fad.chunk.css.map",
-    "static/js/2.839101b7.chunk.js.LICENSE.txt": "./static/js/2.839101b7.chunk.js.LICENSE.txt",
-    "static/media/DOI_logo.svg.32b95c2a.png": "./static/media/DOI_logo.svg.32b95c2a.png",
-    "static/media/o2r-logo-only-white.4c04269a.svg": "./static/media/o2r-logo-only-white.4c04269a.svg",
-    "static/media/orcid.96638b06.png": "./static/media/orcid.96638b06.png"
+    "main.css": "/static/css/main.f7b3bdb5.chunk.css",
+    "main.js": "/static/js/main.cb4ac25f.chunk.js",
+    "main.js.map": "/static/js/main.cb4ac25f.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.d8cead18.js",
+    "runtime-main.js.map": "/static/js/runtime-main.d8cead18.js.map",
+    "static/css/2.63686351.chunk.css": "/static/css/2.63686351.chunk.css",
+    "static/js/2.f9c27836.chunk.js": "/static/js/2.f9c27836.chunk.js",
+    "static/js/2.f9c27836.chunk.js.map": "/static/js/2.f9c27836.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/2.63686351.chunk.css.map": "/static/css/2.63686351.chunk.css.map",
+    "static/css/main.f7b3bdb5.chunk.css.map": "/static/css/main.f7b3bdb5.chunk.css.map",
+    "static/js/2.f9c27836.chunk.js.LICENSE.txt": "/static/js/2.f9c27836.chunk.js.LICENSE.txt",
+    "static/media/DOI_logo.svg.32b95c2a.png": "/static/media/DOI_logo.svg.32b95c2a.png",
+    "static/media/o2r-logo-only-white.4c04269a.svg": "/static/media/o2r-logo-only-white.4c04269a.svg",
+    "static/media/orcid.96638b06.png": "/static/media/orcid.96638b06.png",
+    "static/media/spatioTemporalMetadata.css": "/static/media/spritesheet.a4e0eb7a.svg"
   },
   "entrypoints": [
-    "static/js/runtime-main.1cd5c833.js",
-    "static/css/2.48fcd7aa.chunk.css",
-    "static/js/2.839101b7.chunk.js",
-    "static/css/main.5b4a0fad.chunk.css",
-    "static/js/main.e1feb570.chunk.js"
+    "static/js/runtime-main.d8cead18.js",
+    "static/css/2.63686351.chunk.css",
+    "static/js/2.f9c27836.chunk.js",
+    "static/css/main.f7b3bdb5.chunk.css",
+    "static/js/main.cb4ac25f.chunk.js"
   ]
 }

@@ -1,6 +1,6 @@
-const config= {
+const config = {
     "baseUrl": "https://o2r.uni-muenster.de/api/v1/",
     "ercUrl": "http://localhost/erc/",
-    "title":" | o2r Demoserver",
-    "ojsView" : true,
-"ERCGalleyPrimaryColour": "#e76292"}
+    "title": " | o2r Demoserver",
+    "ojsView": true,
+"ERCGalleyPrimaryColour": "#2c8e2e"}

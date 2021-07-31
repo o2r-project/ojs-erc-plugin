@@ -25,7 +25,8 @@ class ojsErcPlugin extends GenericPlugin
 			$o2rBuildAlreadyThere = is_dir($this->getPluginPath() . '/' . 'build');
 
 			if ($o2rBuildAlreadyThere === false) {
-				$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.5.1/build.zip'; // url to the build 
+				$url = 'https://github.com/o2r-project/o2r-UI/releases/download/0.5.4/build.zip'; // url to the build 
+				#$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.5.1/build.zip'; // url to the build 
 				$file_name = basename($url);
 
 				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
@@ -116,7 +117,7 @@ class ojsErcPlugin extends GenericPlugin
 					$colour = $OJSERCPluginSettings[ERCGalleyColour]; 
 				}
 
-				$positionColour = strpos($adaptedOjsView, 'ojsView') + 17; 
+				$positionColour = strpos($adaptedOjsView, 'ojsView') + 16; 
 				$colourOption = '"ERCGalleyPrimaryColour": "' . $colour . '"'; 
 				$insertColourOption = substr_replace($adaptedOjsView, $colourOption, $positionColour, 0);
 
@@ -149,7 +150,7 @@ class ojsErcPlugin extends GenericPlugin
 						$test = $regularExpressions[$i]; 
 
 						preg_match($value, $oldHtmlFile, $oldPath);
-					   	$newPath = $baseUrl . '/' . $pluginPath . '/build' . substr($oldPath[0], 1); 
+					   	$newPath = $baseUrl . '/' . $pluginPath . '/build/' . substr($oldPath[0], 1); 
 					   	$adaptedHtml = str_replace($oldPath[0], $newPath, $oldHtmlFile);
 					}
 
@@ -157,13 +158,13 @@ class ojsErcPlugin extends GenericPlugin
 				}
 
 				$regularExpressions = array(
-					'staticCss' => '"\.\/static\/css\/[^=]*\.chunk\.css"',
-					'staticCssMain' => '"\.\/static\/css\/main[^=]*\.chunk\.css"',
-					'staticJs' => '"\.\/static\/js\/[^=]*\.chunk\.js"',
-					'staticJsMain' => '"\.\/static\/js\/main[^=]*\.chunk\.js"', 
-					'logo' => '"\.\/logo\.png"', 
-					'manifest' => '"\.\/manifest\.json"', 
-					'configJs' => '"\.\/config\.js"', 
+					'staticCss' => '"\/static\/css\/[^=]*\.chunk\.css"',
+					'staticCssMain' => '"\/static\/css\/main[^=]*\.chunk\.css"',
+					'staticJs' => '"\/static\/js\/[^=]*\.chunk\.js"',
+					'staticJsMain' => '"\/static\/js\/main[^=]*\.chunk\.js"', 
+					'logo' => '"\/logo\.png"', 
+					'manifest' => '"\/manifest\.json"', 
+					'configJs' => '"\/config\.js"', 
 				);
 
 				file_put_contents($pathHtml, updatePath($regularExpressions, $readHtmlFile, $baseUrl, $pluginPath));
