@@ -4,7 +4,7 @@ import('lib.pkp.classes.form.Form');
 /**
  * Form for the plugin settings of the geoOJS plugin. 
  */
-class ojsErcPluginSettingsForm extends Form
+class ojsErcPluginSettingsForm extends Form 
 {
     public $plugin;
 
@@ -30,6 +30,8 @@ class ojsErcPluginSettingsForm extends Form
     {        
         $contextId = Application::get()->getRequest()->getContext()->getId();
         $this->setData('serverURL', $this->plugin->getSetting($contextId, 'serverURL'));
+        $this->setData('ERCGalleyColourFromDb', $this->plugin->getSetting($contextId, 'ERCGalleyColour'));
+
         parent::initData();
     }
 
@@ -39,10 +41,11 @@ class ojsErcPluginSettingsForm extends Form
     public function readInputData()
     {
         $this->readUserVars(['serverURL']);
+        $this->readUserVars(['ERCGalleyColour']);
         parent::readInputData();
 
         /*
-		Update the config.js of the build in terms of the baseURL specified in the plugin settings. 
+		Update the config.js of the build in terms of the baseURL and colour specified in the plugin settings. 
 		*/
 		$pathConfigJs = $this->plugin->pluginPath . '/build/config.js'; 
 
@@ -50,10 +53,15 @@ class ojsErcPluginSettingsForm extends Form
 		$readConfigFile = fread($rawConfigFile, filesize($pathConfigJs)); 
 
 		$baseUrlSpecifiedInSettings = $this->_data[serverURL]; 
+		$ERCGalleyColourSpecifiedInSettings = $this->_data[ERCGalleyColour]; 
 
 		preg_match('/"baseUrl":\s"[^,]*"/', $readConfigFile, $configOld);        
 		$configNew = '"baseUrl": "' . $baseUrlSpecifiedInSettings . '"'; 
 		$adaptedConfig = str_replace($configOld[0], $configNew, $readConfigFile);
+
+        preg_match('/"ERCGalleyPrimaryColour":\s"[^,]*"/', $adaptedConfig, $configOld);        
+		$configNew = '"ERCGalleyPrimaryColour": "' . $ERCGalleyColourSpecifiedInSettings . '"'; 
+		$adaptedConfig = str_replace($configOld[0], $configNew, $adaptedConfig);
 
 		file_put_contents($pathConfigJs, $adaptedConfig);
 		fclose($rawConfigFile);
@@ -83,7 +91,9 @@ class ojsErcPluginSettingsForm extends Form
     public function execute()
     {
         $contextId = Application::get()->getRequest()->getContext()->getId();
+
         $this->plugin->updateSetting($contextId, 'serverURL', $this->getData('serverURL'));
+        $this->plugin->updateSetting($contextId, 'ERCGalleyColour', $this->getData('ERCGalleyColour'));
 
         // Tell the user that the save was successful.
         import('classes.notification.NotificationManager');

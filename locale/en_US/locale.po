@@ -24,6 +24,12 @@ msgstr "Specify the o2r reproducibility service URL."
 msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
 msgstr "URL to the o2r reproducibility service"
 
+msgid "plugins.generic.ojsErcPlugin.settings.ERCGalleyColour.description"
+msgstr "Specify the colour for the ERC Galley. Hereby the primary colour of the ERC Galley can be changed. The colour can be entered either by clicking on the left box with the colour and then using a ColorPicker, or by entering the HEX colour code in the text box on the right.  Other colours like secondary-, success-, warning-, failure colour can be changed manually https://github.com/o2r-project/o2r-UI/blob/master/ui/src/helpers/theme.js, then a build must be created accordingly and updated in the plugin."
+
+msgid "plugins.generic.ojsErcPlugin.settings.ERCGalleyColour"
+msgstr "Colour ERC Galley"
+
 msgid "plugins.generic.ojsErcPlugin.createErc"
 msgstr "ERC"
 

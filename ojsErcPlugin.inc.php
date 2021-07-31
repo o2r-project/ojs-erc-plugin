@@ -18,17 +18,7 @@ class ojsErcPlugin extends GenericPlugin
 		// Register the plugin even when it is not enabled
 		$success = parent::register($category, $path, $mainContextId);
 		// important to check if plugin is enabled before registering the hook, cause otherwise plugin will always run no matter enabled or disabled! 
-		if ($success && $this->getEnabled()) {
-
-			#$request = Application::getRequest();
-			#$journal = $request->getJournal();
-		
-			#$this->setParent('defaultthemeplugin');
-
-			#$this->removeOption('typography');
-
-			#$baseColour = $this->getOption('baseColour');
-
+		if ($success && $this->getEnabled()) {			
 			/*
 			Load the current build of the o2r api, if it is not already there 
 			*/
@@ -36,7 +26,6 @@ class ojsErcPlugin extends GenericPlugin
 
 			if ($o2rBuildAlreadyThere === false) {
 				$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.5.1/build.zip'; // url to the build 
-
 				$file_name = basename($url);
 
 				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
@@ -77,21 +66,61 @@ class ojsErcPlugin extends GenericPlugin
 
 				$baseUrlErcStandard= "https://o2r.uni-muenster.de/api/v1/"; 
 
-				// if there is no url available from the plugin settings the standard url is used 
+				
+				// if there is no url available from the plugin settings the standard url is used and correspondingly set in the database (ojs-erc-plugin settings) 
 				if ($baseUrlErcFromSettings === null || $baseUrlErcFromSettings === '') {
 					$baseUrlErc = $baseUrlErcStandard;
+
+					$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "serverURL", $baseUrlErc);
 				}
 				else {
 					$baseUrlErc = $baseUrlErcFromSettings;
 				}
 
+				/**
+				 * The url is adjusted accordingly in config.js as well. 
+				 * Additionally the ERCGalleyPrimaryColour is written in the config.js
+				 * It is checked if the user has set an ERCGalleyColour in the ojs-erc-plugin settings, 
+				 * if this is the case it is written into the config.js. If this is not the case, 
+				 * the baseColour of the default theme plugin is written to the config.js, and to the variable ERCGalleyColour of the ojs-erc-plugin in the OJS database (ojs-erc-plugin settings).
+				 * If no colour is set via the ojs-erc-plugin and default theme plugin, for example because another theme plugin is used, the OJS default colour is used, written to the config.js, 
+				 * and to the variable ERCGalleyColour of the ojs-erc-plugin in the OJS database (ojs-erc-plugin settings).				 
+				 * */
+				// baseUrl
 				preg_match('/"baseUrl":\s"[^,]*"/', $readConfigFile, $configOld);        
 				$configNew = '"baseUrl": "' . $baseUrlErc . '"'; 
 				$adaptedConfig = str_replace($configOld[0], $configNew, $readConfigFile);
-
 				$adaptedOjsView = str_replace("false", "true", $adaptedConfig);
 
-				file_put_contents($pathConfigJs, $adaptedOjsView);
+				// colour 
+				$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+				$context = PKPApplication::getRequest()->getContext();
+				$contextId = $context ? $context->getId() : 0;
+				$defaultThemePluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'DefaultThemePlugin');
+				$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
+
+				if ($OJSERCPluginSettings[ERCGalleyColour] === '' || $OJSERCPluginSettings[ERCGalleyColour] === null || isset($OJSERCPluginSettings[ERCGalleyColour]) === false ) {
+					
+					if ($defaultThemePluginSettings[baseColour] !== '' && $defaultThemePluginSettings[baseColour] !== null && isset($defaultThemePluginSettings[baseColour])) {
+						$colour = $defaultThemePluginSettings[baseColour]; 
+					}
+					else {
+					$colour = "#1E6292"; // OJS default colour 
+					}
+
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "ERCGalleyColour", $colour);
+
+				}
+				else {
+					$colour = $OJSERCPluginSettings[ERCGalleyColour]; 
+				}
+
+				$positionColour = strpos($adaptedOjsView, 'ojsView') + 17; 
+				$colourOption = '"ERCGalleyPrimaryColour": "' . $colour . '"'; 
+				$insertColourOption = substr_replace($adaptedOjsView, $colourOption, $positionColour, 0);
+
+				file_put_contents($pathConfigJs, $insertColourOption);
 				fclose($rawConfigFile);
 
 				/*
@@ -156,14 +185,12 @@ class ojsErcPlugin extends GenericPlugin
 
 			$request = Application::get()->getRequest();
 			$templateMgr = TemplateManager::getManager($request);
+
+			// main js scripts
+			$templateMgr->assign('pluginSettingsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/pluginSettings.js');
 		}
 		return $success;
 	}
-
-	public function init() {
-		$baseColour = $this->getOption('baseColour');
-	}
-	
 
 	/**
 	 * Function which extends the submissionMetadataFormFields template and adds template variables concerning temporal- and spatial properties 
