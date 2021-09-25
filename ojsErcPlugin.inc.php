@@ -20,14 +20,34 @@ class ojsErcPlugin extends GenericPlugin
 		// important to check if plugin is enabled before registering the hook, cause otherwise plugin will always run no matter enabled or disabled! 
 		if ($success && $this->getEnabled()) {			
 			/*
-			Load the current build of the o2r api, if it is not already there 
+			Load the build of the o2r api release version (if it is not already there), which is specified by the user in the plugin settings.
+			If there is no version specified by the user, then $releaseUrlStandard is used, which means at the moment version 0.5.5. 
 			*/
 			$o2rBuildAlreadyThere = is_dir($this->getPluginPath() . '/' . 'build');
 
 			if ($o2rBuildAlreadyThere === false) {
-				$url = 'https://github.com/o2r-project/o2r-UI/releases/download/0.5.4/build.zip'; // url to the build 
-				#$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.5.1/build.zip'; // url to the build 
-				$file_name = basename($url);
+
+				$contextId = Application::get()->getRequest()->getContext()->getId();
+				$releaseVersionFromSettings = $this->getSetting($contextId, 'releaseVersion'); 
+
+				$releaseUrlStandard= "https://github.com/o2r-project/o2r-UI/releases/download/0.5.5/build.zip"; 
+
+				/*
+				If there is no release version available from the plugin settings the standard releaseUrl is used and correspondingly set in the database (ojs-erc-plugin settings) as version.
+				Otherwise the version specified by the user in the settings is used. 
+				*/
+				if ($releaseVersionFromSettings === null || $releaseVersionFromSettings === '') {
+
+					$releaseUrl = $releaseUrlStandard;
+
+					$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "releaseVersion", '0.5.5');
+				}
+				else {
+					$releaseUrl = 'https://github.com/o2r-project/o2r-UI/releases/download/' . $releaseVersionFromSettings . '/build.zip'; 
+				}
+
+				$file_name = basename($releaseUrl);
 
 				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
 
@@ -35,7 +55,7 @@ class ojsErcPlugin extends GenericPlugin
 				$pathNoZip = $this->getPluginPath() . '/' . 'build'; // final path in the plugin structure 
 
 				// store unzipped build at final destination 
-				if(file_put_contents($pathZip, file_get_contents($url))) {
+				if(file_put_contents($pathZip, file_get_contents($releaseUrl))) {
 
 					$zip = new ZipArchive;
 					if ($zip->open($pathZip) === TRUE) {
@@ -146,8 +166,6 @@ class ojsErcPlugin extends GenericPlugin
 					foreach ($regularExpressions as $key => $value) {
 
 						$oldHtmlFile = $adaptedHtml; 
-
-						$test = $regularExpressions[$i]; 
 
 						preg_match($value, $oldHtmlFile, $oldPath);
 					   	$newPath = $baseUrl . '/' . $pluginPath . '/build/' . substr($oldPath[0], 1); 
@@ -335,7 +353,6 @@ class ojsErcPlugin extends GenericPlugin
 			// store/ create new file 
 			$fileId = Services::get('file')->add($temporaryIndexHtmlPath, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
 			
-			$test = sys_get_temp_dir() . '/' . $ErcHtmlFileName; 
 			unlink(sys_get_temp_dir() . '/' . $ErcHtmlFileName); 
 
 			// get userId 

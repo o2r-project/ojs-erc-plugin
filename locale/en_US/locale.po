@@ -41,3 +41,7 @@ msgstr "ERC ID"
 
 msgid "plugins.generic.ojsErcPlugin.createErc.ErcId.description"
 msgstr "Insert the ERC identifier"
+  
+msgid "plugins.generic.ojsErcPlugin.settings.Release.description"
+msgstr "Here you can select the release of the o2r-ui which should be used by the plugin. The blue dot indicates which version is currently used. There is a risk that not all functions of the plugin are available for earlier versions. Especially for version 0.5.4 and all versions below difficulties may arise."
+

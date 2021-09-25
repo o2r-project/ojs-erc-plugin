@@ -31,6 +31,7 @@ class ojsErcPluginSettingsForm extends Form
         $contextId = Application::get()->getRequest()->getContext()->getId();
         $this->setData('serverURL', $this->plugin->getSetting($contextId, 'serverURL'));
         $this->setData('ERCGalleyColourFromDb', $this->plugin->getSetting($contextId, 'ERCGalleyColour'));
+        $this->setData('releaseVersionFromDb', $this->plugin->getSetting($contextId, 'releaseVersion'));
 
         parent::initData();
     }
@@ -42,6 +43,7 @@ class ojsErcPluginSettingsForm extends Form
     {
         $this->readUserVars(['serverURL']);
         $this->readUserVars(['ERCGalleyColour']);
+        $this->readUserVars(['releaseVersion']);
         parent::readInputData();
 
         /*
@@ -65,6 +67,27 @@ class ojsErcPluginSettingsForm extends Form
 
 		file_put_contents($pathConfigJs, $adaptedConfig);
 		fclose($rawConfigFile);
+
+
+        /*
+        If the new set release version by the user is different from the currently by the plugin used release version, 
+        the currently used build is deleted and thus the download process for the build with the version specified by the user in the settings is started in the script "ojsErcPlugin.inc.php. 
+        */
+        $contextId = Application::get()->getRequest()->getContext()->getId();
+        
+        // currently used build version is stored in database and gets updated after each setting change by the user in the function execute() below. Here the setting is queried for the comparison. 
+        $releaseVersionFromDb = $this->plugin->getSetting($contextId, 'releaseVersion');
+
+        // build version specified by the user 
+        $releaseVersion = $this->_data[releaseVersion];
+
+        // path of the currently used build folder 
+        $pathBuildFolder = $this->plugin->pluginPath . '/build'; 
+
+        // Additionally the case must be considered, if no change is made by the user, then the hidden field remains empty, however no empty indication in the data base should be stored, but the old indication should remain. 
+        if ($releaseVersionFromDb !== $releaseVersion && $releaseVersion !== "") {
+            rrmdir($pathBuildFolder); 
+        }
     }
 
     /**
@@ -94,6 +117,9 @@ class ojsErcPluginSettingsForm extends Form
 
         $this->plugin->updateSetting($contextId, 'serverURL', $this->getData('serverURL'));
         $this->plugin->updateSetting($contextId, 'ERCGalleyColour', $this->getData('ERCGalleyColour'));
+        if ($this->getData('releaseVersion') !== ""){
+            $this->plugin->updateSetting($contextId, 'releaseVersion', $this->getData('releaseVersion'));
+        }
 
         // Tell the user that the save was successful.
         import('classes.notification.NotificationManager');
@@ -107,3 +133,19 @@ class ojsErcPluginSettingsForm extends Form
         return parent::execute();
     }
 }
+
+/**
+ * Function to delete a directory and all content (files, directories) in it. 
+ */
+function rrmdir($dir) {
+    if (is_dir($dir)) {
+      $objects = scandir($dir);
+      foreach ($objects as $object) {
+        if ($object != "." && $object != "..") {
+          if (filetype($dir."/".$object) == "dir") rrmdir($dir."/".$object); else unlink($dir."/".$object);
+        }
+      }
+      reset($objects);
+      rmdir($dir);
+    }
+} 

@@ -52,6 +52,27 @@
     {/fbvFormSection}
     {/fbvFormArea}
 
+    {*Release*}
+    {fbvFormArea}
+    {fbvFormSection list=true}
+    <p align="justify" class="description" id="releaseDescription" style="color: rgba(0,0,0,0.54)">{translate
+        key="plugins.generic.ojsErcPlugin.settings.Release.description"}
+    {fbvElement
+        type="text"
+        id="releaseVersionFromDb"
+        value=$releaseVersionFromDb
+        style="height: 0px; width: 0px; z-index: 0; visibility: hidden;"
+        }
+    <input type="text" id="releaseVersion" name="releaseVersion" style="height: 0px; width: 0px; z-index: 0; visibility: hidden;"/>
+
+    
+    
+
+
+    {/fbvFormSection}
+    {/fbvFormArea}
+
+
     {fbvFormButtons submitText="common.save"}
 </form>
 
