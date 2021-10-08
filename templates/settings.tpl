@@ -64,11 +64,6 @@
         style="height: 0px; width: 0px; z-index: 0; visibility: hidden;"
         }
     <input type="text" id="releaseVersion" name="releaseVersion" style="height: 0px; width: 0px; z-index: 0; visibility: hidden;"/>
-
-    
-    
-
-
     {/fbvFormSection}
     {/fbvFormArea}
 
