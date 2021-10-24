@@ -67,6 +67,16 @@
     {/fbvFormSection}
     {/fbvFormArea}
 
+    {*GalleySettings*}
+    {fbvFormArea}
+    {fbvFormSection list=true}
+    <p align="justify" class="description" id="GalleySettings" style="color: rgba(0,0,0,0.54)">{translate
+        key="plugins.generic.ojsErcPlugin.settings.GalleySettings.description"}
+    {fbvElement type="checkbox" name="ERCo2ruiGalley" id="ERCo2ruiGalley" checked=$ERCo2ruiGalley label="plugins.generic.ojsErcPlugin.settings.GalleySettings.o2rui" translate="true"}
+    {fbvElement type="checkbox" name="ERCHTMLGalley" id="ERCHTMLGalley" checked=$ERCHTMLGalley label="plugins.generic.ojsErcPlugin.settings.GalleySettings.html" translate="true"}
+    {/fbvFormSection}
+    {/fbvFormArea}
+
 
     {fbvFormButtons submitText="common.save"}
 </form>

@@ -289,6 +289,8 @@ class ojsErcPlugin extends GenericPlugin
 	 * Function which fills the new fields (created by the function addToSchema) in the schema. 
 	 * The data is collected using the 'submissionMetadataFormFields.js', then passed as input to the 'submissionMetadataFormFields.tpl'
 	 * and requested from it in this php script by a POST-method. 
+	 * Additional a html galley and o2r-ui galley is created if an ErcId input is given by the user, and if the function is not disabled in the plugin settings. 
+	 * Take care, function is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
 	 * @param hook Publication::edit
 	 */
 	
@@ -301,105 +303,179 @@ class ojsErcPlugin extends GenericPlugin
 
 		$testErcId = 'geQfc'; 
 
-		/*
-		If the user entered an ErcId, an html with the id in it is created, this html is uploaded as file and submission file and attachted to an galley. 
-		Take care, function is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
+		// loading OJS ERC plugin settings 
+		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+		$context = PKPApplication::getRequest()->getContext();
+		$contextId = $context ? $context->getId() : 0;
+		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
+
+
+
+		/**
+		* If an ErcId exists, there are two galleys created. In the first one, the displayfile/ main html of the ERC is shown. 
+		* In the second one the ERC in the classical o2r-ui is shown. 
+		* This is only done, if the corresponding galley option is not disabled in the OJS ERC plugin settings. 
 		*/
 		if ($ErcId !== null) {
+
+			// store ErcId in the database
 			$newPublication->setData('ojsErcPlugin::ErcId', $ErcId);
-		
-			// get path were the initial html file for the galley is stored
-			$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
-			
-			$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
-			
-			/*
-			Update the index.html of the build in terms of the ErcId and store it at a temporary location  
-			*/
-			$pathIndexHtml = $this->getPluginPath() . '/build/index.html'; 
 
-			$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
-			$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $ErcHtmlFileName; // path in the temporary directory
+			// ERC html displayfile galley
+			if ($OJSERCPluginSettings[ERCHTMLGalley] === NULL) { 
+ 
+				/* 
+				Request to the o2r API, to get to know the filename of the displayfile of the ERC 
+				*/
+				$url = 'https://o2r.uni-muenster.de/api/v1/compendium/' . $ErcId; 
 
-			copy($pathIndexHtml, $temporaryIndexHtmlPath);  
+				$curl = curl_init($url);
+				curl_setopt($curl, CURLOPT_URL, $url);
+				curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
-			$rawHtmlFile = fopen($temporaryIndexHtmlPath, "r+");
-			$readHtmlFile = fread($rawHtmlFile, filesize($temporaryIndexHtmlPath)); 
+				//for debug only!
+				curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+				curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 
-			$positionConfigJs = strrpos($readHtmlFile, 'config.js"></script>'); // The ErcId must be inserted after the config.js, to overwrite the Id set in the config.js
-			$positionConfigErcID = $positionConfigJs + 20; 
+				$resp = curl_exec($curl);
+				curl_close($curl);
 
-			$scriptErcId = '<script>config.ercID =  "' . $ErcId . '"; </script>'; 
+				$jsonData = json_decode($resp);
+				$nameDisplayfile = $jsonData->metadata->o2r->displayfile;
 
-			$adaptedErcId = substr_replace($readHtmlFile, $scriptErcId, $positionConfigErcID, 0);
+				/*
+				Request to the o2r API, to get the displayFile. Then the file gets stored in a temporary directory. 
+				*/
+				$url = 'https://o2r.uni-muenster.de/api/v1/compendium/' . $ErcId . '/data/' . $nameDisplayfile; 
 
-			file_put_contents($temporaryIndexHtmlPath, $adaptedErcId);
-			fclose($rawHtmlFile);
+				$curl = curl_init($url);
+				curl_setopt($curl, CURLOPT_URL, $url);
+				curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
-			/*
-			Create new submission file.
-			Therefore first a file is uploaded an than this file is used to create a submission file.  
-			*/
-			$request = Application::get()->getRequest();
-			$context = $request->getContext();
-			$contextId = $context->getId(); 
-		
-			// id of the new created publication 
-			$submissionId = $newPublication->_data['id']; 
+				//for debug only!
+				curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+				curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 
-			// get path were the submission files are stored for this new submission 
-			$pathSubmissionFiles = Services::get('submissionFile')->getSubmissionDir($contextId, $submissionId);
+				$resp = curl_exec($curl);
+				curl_close($curl);
 
-			// store/ create new file 
-			$fileId = Services::get('file')->add($temporaryIndexHtmlPath, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
-			
-			unlink(sys_get_temp_dir() . '/' . $ErcHtmlFileName); 
+				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+				$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $nameDisplayfile; // path in the temporary directory
 
-			// get userId 
-			$userId = Application::get()->getRequest()->getUser()->getId(); 
+				file_put_contents($temporaryIndexHtmlPath, $resp);
 
-			// get language properties 
-			$primaryLocale = $request->getContext()->getPrimaryLocale();
-			$allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
-	
-	
-			// set properties for the new submission file 
-			$params = [
-				'fileStage' => 2, // better use the constant PKP\submission\SubmissionFile::SUBMISSION_FILE_SUBMISSION, but dont know how 
-				'fileId' => $fileId,
-				'name' => [
-					$primaryLocale => 'ERCGalley-' . $ErcId . '.html',
-				],
-				'submissionId' => $submissionId,
-				'uploaderUserId' => $userId,
-				'genreId' => 1
-			];
-
-			// proof properties on errors 
-			$errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
-
-			// create the new submission file 
-			if (empty($errors)) {
-				$submissionFile = DAORegistry::getDao('SubmissionFileDAO')->newDataObject();
-				$submissionFile->setAllData($params);
-				$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
+				// create corresponding submission file and galley 
+				$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-HTML', $newPublication);
 			}
-		
-			/*
-			Create galley with the before uploaded submission file 
-			*/ 
-			$submissionFileId = $submissionFile->_data['id']; 
-			$articleGalleyDAO = DAORegistry::getDAO('ArticleGalleyDAO');
-			$galley = $articleGalleyDAO->newDataObject();
 
-			$galley->setData('submissionFileId', $submissionFileId); 
-			$galley->setLocale('en_US');
-			$galley->setData('publicationId', $submissionId);
-			$galley->setLabel('ERC');
-			$galley->setSequence(1);
-			$galley->setData('urlPath', 'erc-' . $ErcId);
-			$articleGalleyDAO->insertObject($galley);
+
+
+			// ERC o2r-ui galley 
+			if ($OJSERCPluginSettings[ERCo2ruiGalley] === NULL) { 
+
+				// get path were the initial html file for the galley is stored
+				$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
+			
+				$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
+			
+				/*
+				Update the index.html of the build in terms of the ErcId and store it at a temporary location  
+				*/
+				$pathIndexHtml = $this->getPluginPath() . '/build/index.html'; 
+
+				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+				$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $ErcHtmlFileName; // path in the temporary directory
+
+				copy($pathIndexHtml, $temporaryIndexHtmlPath);  
+
+				$rawHtmlFile = fopen($temporaryIndexHtmlPath, "r+");
+				$readHtmlFile = fread($rawHtmlFile, filesize($temporaryIndexHtmlPath)); 
+
+				$positionConfigJs = strrpos($readHtmlFile, 'config.js"></script>'); // The ErcId must be inserted after the config.js, to overwrite the Id set in the config.js
+				$positionConfigErcID = $positionConfigJs + 20; 
+
+				$scriptErcId = '<script>config.ercID =  "' . $ErcId . '"; </script>'; 
+
+				$adaptedErcId = substr_replace($readHtmlFile, $scriptErcId, $positionConfigErcID, 0);
+
+				file_put_contents($temporaryIndexHtmlPath, $adaptedErcId);
+				fclose($rawHtmlFile);
+
+				// create corresponding submission file and galley 
+				$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-Galley', $newPublication);
+			}
+		} 		
+	}
+
+	/**
+	 * Function to create from a given file a submission file and corresponding galley in the OJS article view.
+	 * @param $temporaryIndexHtmlPath path of the html file in the temporary folder 
+	 * @param $ErcId given ErcId entered by the user 
+	 * @param $ERCGalleyType There are two galley types possible at the moment either the ''ERC-HTML'', where only the displayfile of the ERC is shown, 
+	 * or the 'ERC-Galley' where the o2r-ui is shown 
+	 * @param $newPublication information about the current publication 
+	 */
+	public function createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, $ERCGalleyType, $newPublication)
+	{
+		$request = Application::get()->getRequest();
+		$context = $request->getContext();
+		$contextId = $context->getId(); 
+
+		// id of the new created publication 
+		$submissionId = $newPublication->_data['id']; 
+
+		// get path were the submission files are stored for this new submission 
+		$pathSubmissionFiles = Services::get('submissionFile')->getSubmissionDir($contextId, $submissionId);
+
+		// store/ create new file 
+		$fileId = Services::get('file')->add($temporaryIndexHtmlPath, $pathSubmissionFiles . '/' . $ERCGalleyType . '-' . $ErcId . '.html');
+	
+		unlink($temporaryIndexHtmlPath); 
+
+		// get userId 
+		$userId = Application::get()->getRequest()->getUser()->getId(); 
+
+		// get language properties 
+		$primaryLocale = $request->getContext()->getPrimaryLocale();
+		$allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
+
+
+		// set properties for the new submission file 
+		$params = [
+			'fileStage' => 2, // better use the constant PKP\submission\SubmissionFile::SUBMISSION_FILE_SUBMISSION, but dont know how 
+			'fileId' => $fileId,
+			'name' => [
+				$primaryLocale => $ERCGalleyType . '-' . $ErcId . '.html',
+			],
+			'submissionId' => $submissionId,
+			'uploaderUserId' => $userId,
+			'genreId' => 1
+		];
+
+		// proof properties on errors 
+		$errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+
+		// create the new submission file 
+		if (empty($errors)) {
+			$submissionFile = DAORegistry::getDao('SubmissionFileDAO')->newDataObject();
+			$submissionFile->setAllData($params);
+			$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
 		}
+
+		/*
+		Create galley with the before uploaded submission file 
+		*/ 
+		$submissionFileId = $submissionFile->_data['id']; 
+		$articleGalleyDAO = DAORegistry::getDAO('ArticleGalleyDAO');
+		$galley = $articleGalleyDAO->newDataObject();
+
+		$galley->setData('submissionFileId', $submissionFileId); 
+		$galley->setLocale('en_US');
+		$galley->setData('publicationId', $submissionId);
+		$galley->setLabel($ERCGalleyType);
+		$galley->setSequence(1);
+		$galley->setData('urlPath', $ERCGalleyType . '-' . $ErcId);
+		$articleGalleyDAO->insertObject($galley);
 	}
 
 	/**

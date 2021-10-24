@@ -32,6 +32,9 @@ class ojsErcPluginSettingsForm extends Form
         $this->setData('serverURL', $this->plugin->getSetting($contextId, 'serverURL'));
         $this->setData('ERCGalleyColourFromDb', $this->plugin->getSetting($contextId, 'ERCGalleyColour'));
         $this->setData('releaseVersionFromDb', $this->plugin->getSetting($contextId, 'releaseVersion'));
+        $this->setData('ERCo2ruiGalley', $this->plugin->getSetting($contextId, 'ERCo2ruiGalley'));
+        $this->setData('ERCHTMLGalley', $this->plugin->getSetting($contextId, 'ERCHTMLGalley'));
+
 
         parent::initData();
     }
@@ -44,6 +47,8 @@ class ojsErcPluginSettingsForm extends Form
         $this->readUserVars(['serverURL']);
         $this->readUserVars(['ERCGalleyColour']);
         $this->readUserVars(['releaseVersion']);
+        $this->readUserVars(['ERCo2ruiGalley']);
+        $this->readUserVars(['ERCHTMLGalley']);
         parent::readInputData();
 
         /*
@@ -117,6 +122,9 @@ class ojsErcPluginSettingsForm extends Form
 
         $this->plugin->updateSetting($contextId, 'serverURL', $this->getData('serverURL'));
         $this->plugin->updateSetting($contextId, 'ERCGalleyColour', $this->getData('ERCGalleyColour'));
+        $this->plugin->updateSetting($contextId, 'ERCo2ruiGalley', $this->getData('ERCo2ruiGalley'));
+        $this->plugin->updateSetting($contextId, 'ERCHTMLGalley', $this->getData('ERCHTMLGalley'));
+
         if ($this->getData('releaseVersion') !== ""){
             $this->plugin->updateSetting($contextId, 'releaseVersion', $this->getData('releaseVersion'));
         }
