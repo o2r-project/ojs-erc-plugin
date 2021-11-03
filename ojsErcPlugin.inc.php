@@ -41,7 +41,7 @@ class ojsErcPlugin extends GenericPlugin
 					$releaseUrl = $releaseUrlStandard;
 
 					$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "releaseVersion", '0.5.5');
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "releaseVersion", '0.5.6');
 				}
 				else {
 					$releaseUrl = 'https://github.com/o2r-project/o2r-UI/releases/download/' . $releaseVersionFromSettings . '/build.zip'; 
@@ -176,10 +176,10 @@ class ojsErcPlugin extends GenericPlugin
 				}
 
 				$regularExpressions = array(
-					'staticCss' => '"\/static\/css\/[^=]*\.chunk\.css"',
-					'staticCssMain' => '"\/static\/css\/main[^=]*\.chunk\.css"',
-					'staticJs' => '"\/static\/js\/[^=]*\.chunk\.js"',
-					'staticJsMain' => '"\/static\/js\/main[^=]*\.chunk\.js"', 
+					'staticCss' => '"\/static\/css\/2\.chunk\.css"',
+					'staticCssMain' => '"\/static\/css\/main\.chunk\.css"',
+					'staticJs' => '"\/static\/js\/2\.chunk\.js"',
+					'staticJsMain' => '"\/static\/js\/main\.chunk\.js"', 
 					'logo' => '"\/logo\.png"', 
 					'manifest' => '"\/manifest\.json"', 
 					'configJs' => '"\/config\.js"', 
@@ -316,7 +316,7 @@ class ojsErcPlugin extends GenericPlugin
 		* In the second one the ERC in the classical o2r-ui is shown. 
 		* This is only done, if the corresponding galley option is not disabled in the OJS ERC plugin settings. 
 		*/
-		if ($ErcId !== null) {
+		if ($ErcId !== null && $ErcId !== "") {
 
 			// store ErcId in the database
 			$newPublication->setData('ojsErcPlugin::ErcId', $ErcId);
@@ -367,8 +367,6 @@ class ojsErcPlugin extends GenericPlugin
 				// create corresponding submission file and galley 
 				$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-HTML', $newPublication);
 			}
-
-
 
 			// ERC o2r-ui galley 
 			if ($OJSERCPluginSettings[ERCo2ruiGalley] === NULL) { 
