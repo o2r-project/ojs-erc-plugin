@@ -21,7 +21,7 @@ class ojsErcPlugin extends GenericPlugin
 		if ($success && $this->getEnabled()) {			
 			/*
 			Load the build of the o2r api release version (if it is not already there), which is specified by the user in the plugin settings.
-			If there is no version specified by the user, then $releaseUrlStandard is used, which means at the moment version 0.5.5. 
+			If there is no version specified by the user, then $releaseUrlStandard is used, which means at the moment version 0.5.6. 
 			*/
 			$o2rBuildAlreadyThere = is_dir($this->getPluginPath() . '/' . 'build');
 
@@ -30,7 +30,7 @@ class ojsErcPlugin extends GenericPlugin
 				$contextId = Application::get()->getRequest()->getContext()->getId();
 				$releaseVersionFromSettings = $this->getSetting($contextId, 'releaseVersion'); 
 
-				$releaseUrlStandard= "https://github.com/o2r-project/o2r-UI/releases/download/0.5.5/build.zip"; 
+				$releaseUrlStandard= "https://github.com/o2r-project/o2r-UI/releases/download/0.5.6/build.zip"; 
 
 				/*
 				If there is no release version available from the plugin settings the standard releaseUrl is used and correspondingly set in the database (ojs-erc-plugin settings) as version.
