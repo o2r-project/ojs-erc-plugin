@@ -7,6 +7,8 @@ use phpDocumentor\Reflection\Types\Null_;
 use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldHTML; // needed for function extendScheduleForPublication
 use PKP\submission\SubmissionFile;
+use PKP\core\JSONMessage; // needed otherwise the JSONMessage in the manage-function is not possible 
+use APP\facades\Repo; // needed to get publication information 
 
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
@@ -245,10 +247,10 @@ class ojsErcPlugin extends GenericPlugin
 	 	and requested from there in the 'submissionMetadataFormFields.js' to display coordinates in a map, the date and coverage information if available.
 		*/
 
-		$publicationDao = DAORegistry::getDAO('PublicationDAO');
-
+		#$publicationDao = DAORegistry::getDAO('PublicationDAO'); // used in older version, not working anymore
 		$submissionId = $request->getUserVar('submissionId');
-		$publication = $publicationDao->getById($submissionId);
+		$publication = Repo::publication()->get($submissionId);
+		#$publication = $publicationDao->getById($submissionId); // used in older version, not working anymore
 
 		$ErcId = $publication->getData('ojsErcPlugin::ErcId');
 		
