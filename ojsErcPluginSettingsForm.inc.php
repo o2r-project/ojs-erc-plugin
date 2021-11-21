@@ -16,8 +16,10 @@ class ojsErcPluginSettingsForm extends Form
         $this->plugin = $plugin;
 
         // Always add POST and CSRF validation to secure your form.
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        #$this->addCheck(new FormValidatorPost($this)); in earlier versions named this way but changed to the one below 
+        #$this->addCheck(new FormValidatorCSRF($this)); in earlier versions named this way but changed to the one below 
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**
