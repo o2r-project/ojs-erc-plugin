@@ -18,26 +18,36 @@ class ojsErcPlugin extends GenericPlugin
 		// Register the plugin even when it is not enabled
 		$success = parent::register($category, $path, $mainContextId);
 		// important to check if plugin is enabled before registering the hook, cause otherwise plugin will always run no matter enabled or disabled! 
-		if ($success && $this->getEnabled()) {
-
-			#$request = Application::getRequest();
-			#$journal = $request->getJournal();
-		
-			#$this->setParent('defaultthemeplugin');
-
-			#$this->removeOption('typography');
-
-			#$baseColour = $this->getOption('baseColour');
-
+		if ($success && $this->getEnabled()) {			
 			/*
-			Load the current build of the o2r api, if it is not already there 
+			Load the build of the o2r api release version (if it is not already there), which is specified by the user in the plugin settings.
+			If there is no version specified by the user, then $releaseUrlStandard is used, which means at the moment version 0.5.6. 
 			*/
 			$o2rBuildAlreadyThere = is_dir($this->getPluginPath() . '/' . 'build');
 
 			if ($o2rBuildAlreadyThere === false) {
-				$url = 'https://github.com/NJaku01/o2r-UI/releases/download/0.5.1/build.zip'; // url to the build 
 
-				$file_name = basename($url);
+				$contextId = Application::get()->getRequest()->getContext()->getId();
+				$releaseVersionFromSettings = $this->getSetting($contextId, 'releaseVersion'); 
+
+				$releaseUrlStandard= "https://github.com/o2r-project/o2r-UI/releases/download/0.5.6/build.zip"; 
+
+				/*
+				If there is no release version available from the plugin settings the standard releaseUrl is used and correspondingly set in the database (ojs-erc-plugin settings) as version.
+				Otherwise the version specified by the user in the settings is used. 
+				*/
+				if ($releaseVersionFromSettings === null || $releaseVersionFromSettings === '') {
+
+					$releaseUrl = $releaseUrlStandard;
+
+					$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "releaseVersion", '0.5.6');
+				}
+				else {
+					$releaseUrl = 'https://github.com/o2r-project/o2r-UI/releases/download/' . $releaseVersionFromSettings . '/build.zip'; 
+				}
+
+				$file_name = basename($releaseUrl);
 
 				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
 
@@ -45,7 +55,7 @@ class ojsErcPlugin extends GenericPlugin
 				$pathNoZip = $this->getPluginPath() . '/' . 'build'; // final path in the plugin structure 
 
 				// store unzipped build at final destination 
-				if(file_put_contents($pathZip, file_get_contents($url))) {
+				if(file_put_contents($pathZip, file_get_contents($releaseUrl))) {
 
 					$zip = new ZipArchive;
 					if ($zip->open($pathZip) === TRUE) {
@@ -77,21 +87,61 @@ class ojsErcPlugin extends GenericPlugin
 
 				$baseUrlErcStandard= "https://o2r.uni-muenster.de/api/v1/"; 
 
-				// if there is no url available from the plugin settings the standard url is used 
+				
+				// if there is no url available from the plugin settings the standard url is used and correspondingly set in the database (ojs-erc-plugin settings) 
 				if ($baseUrlErcFromSettings === null || $baseUrlErcFromSettings === '') {
 					$baseUrlErc = $baseUrlErcStandard;
+
+					$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "serverURL", $baseUrlErc);
 				}
 				else {
 					$baseUrlErc = $baseUrlErcFromSettings;
 				}
 
+				/**
+				 * The url is adjusted accordingly in config.js as well. 
+				 * Additionally the ERCGalleyPrimaryColour is written in the config.js
+				 * It is checked if the user has set an ERCGalleyColour in the ojs-erc-plugin settings, 
+				 * if this is the case it is written into the config.js. If this is not the case, 
+				 * the baseColour of the default theme plugin is written to the config.js, and to the variable ERCGalleyColour of the ojs-erc-plugin in the OJS database (ojs-erc-plugin settings).
+				 * If no colour is set via the ojs-erc-plugin and default theme plugin, for example because another theme plugin is used, the OJS default colour is used, written to the config.js, 
+				 * and to the variable ERCGalleyColour of the ojs-erc-plugin in the OJS database (ojs-erc-plugin settings).				 
+				 * */
+				// baseUrl
 				preg_match('/"baseUrl":\s"[^,]*"/', $readConfigFile, $configOld);        
 				$configNew = '"baseUrl": "' . $baseUrlErc . '"'; 
 				$adaptedConfig = str_replace($configOld[0], $configNew, $readConfigFile);
-
 				$adaptedOjsView = str_replace("false", "true", $adaptedConfig);
 
-				file_put_contents($pathConfigJs, $adaptedOjsView);
+				// colour 
+				$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+				$context = PKPApplication::getRequest()->getContext();
+				$contextId = $context ? $context->getId() : 0;
+				$defaultThemePluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'DefaultThemePlugin');
+				$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
+
+				if ($OJSERCPluginSettings[ERCGalleyColour] === '' || $OJSERCPluginSettings[ERCGalleyColour] === null || isset($OJSERCPluginSettings[ERCGalleyColour]) === false ) {
+					
+					if ($defaultThemePluginSettings[baseColour] !== '' && $defaultThemePluginSettings[baseColour] !== null && isset($defaultThemePluginSettings[baseColour])) {
+						$colour = $defaultThemePluginSettings[baseColour]; 
+					}
+					else {
+					$colour = "#1E6292"; // OJS default colour 
+					}
+
+					$pluginSettingsDAO->updateSetting($contextId, "ojsercplugin", "ERCGalleyColour", $colour);
+
+				}
+				else {
+					$colour = $OJSERCPluginSettings[ERCGalleyColour]; 
+				}
+
+				$positionColour = strpos($adaptedOjsView, 'ojsView') + 16; 
+				$colourOption = '"ERCGalleyPrimaryColour": "' . $colour . '"'; 
+				$insertColourOption = substr_replace($adaptedOjsView, $colourOption, $positionColour, 0);
+
+				file_put_contents($pathConfigJs, $insertColourOption);
 				fclose($rawConfigFile);
 
 				/*
@@ -117,10 +167,8 @@ class ojsErcPlugin extends GenericPlugin
 
 						$oldHtmlFile = $adaptedHtml; 
 
-						$test = $regularExpressions[$i]; 
-
 						preg_match($value, $oldHtmlFile, $oldPath);
-					   	$newPath = $baseUrl . '/' . $pluginPath . '/build' . substr($oldPath[0], 1); 
+					   	$newPath = $baseUrl . '/' . $pluginPath . '/build/' . substr($oldPath[0], 1); 
 					   	$adaptedHtml = str_replace($oldPath[0], $newPath, $oldHtmlFile);
 					}
 
@@ -128,13 +176,13 @@ class ojsErcPlugin extends GenericPlugin
 				}
 
 				$regularExpressions = array(
-					'staticCss' => '"\.\/static\/css\/[^=]*\.chunk\.css"',
-					'staticCssMain' => '"\.\/static\/css\/main[^=]*\.chunk\.css"',
-					'staticJs' => '"\.\/static\/js\/[^=]*\.chunk\.js"',
-					'staticJsMain' => '"\.\/static\/js\/main[^=]*\.chunk\.js"', 
-					'logo' => '"\.\/logo\.png"', 
-					'manifest' => '"\.\/manifest\.json"', 
-					'configJs' => '"\.\/config\.js"', 
+					'staticCss' => '"\/static\/css\/2\.chunk\.css"',
+					'staticCssMain' => '"\/static\/css\/main\.chunk\.css"',
+					'staticJs' => '"\/static\/js\/2\.chunk\.js"',
+					'staticJsMain' => '"\/static\/js\/main\.chunk\.js"', 
+					'logo' => '"\/logo\.png"', 
+					'manifest' => '"\/manifest\.json"', 
+					'configJs' => '"\/config\.js"', 
 				);
 
 				file_put_contents($pathHtml, updatePath($regularExpressions, $readHtmlFile, $baseUrl, $pluginPath));
@@ -156,14 +204,12 @@ class ojsErcPlugin extends GenericPlugin
 
 			$request = Application::get()->getRequest();
 			$templateMgr = TemplateManager::getManager($request);
+
+			// main js scripts
+			$templateMgr->assign('pluginSettingsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/pluginSettings.js');
 		}
 		return $success;
 	}
-
-	public function init() {
-		$baseColour = $this->getOption('baseColour');
-	}
-	
 
 	/**
 	 * Function which extends the submissionMetadataFormFields template and adds template variables concerning temporal- and spatial properties 
@@ -243,6 +289,8 @@ class ojsErcPlugin extends GenericPlugin
 	 * Function which fills the new fields (created by the function addToSchema) in the schema. 
 	 * The data is collected using the 'submissionMetadataFormFields.js', then passed as input to the 'submissionMetadataFormFields.tpl'
 	 * and requested from it in this php script by a POST-method. 
+	 * Additional a html galley and o2r-ui galley is created if an ErcId input is given by the user, and if the function is not disabled in the plugin settings. 
+	 * Take care, function is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
 	 * @param hook Publication::edit
 	 */
 	
@@ -255,106 +303,177 @@ class ojsErcPlugin extends GenericPlugin
 
 		$testErcId = 'geQfc'; 
 
-		/*
-		If the user entered an ErcId, an html with the id in it is created, this html is uploaded as file and submission file and attachted to an galley. 
-		Take care, function is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
+		// loading OJS ERC plugin settings 
+		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+		$context = PKPApplication::getRequest()->getContext();
+		$contextId = $context ? $context->getId() : 0;
+		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
+
+
+
+		/**
+		* If an ErcId exists, there are two galleys created. In the first one, the displayfile/ main html of the ERC is shown. 
+		* In the second one the ERC in the classical o2r-ui is shown. 
+		* This is only done, if the corresponding galley option is not disabled in the OJS ERC plugin settings. 
 		*/
-		if ($ErcId !== null) {
+		if ($ErcId !== null && $ErcId !== "") {
+
+			// store ErcId in the database
 			$newPublication->setData('ojsErcPlugin::ErcId', $ErcId);
-		
-			// get path were the initial html file for the galley is stored
-			$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
-			
-			$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
-			
-			/*
-			Update the index.html of the build in terms of the ErcId and store it at a temporary location  
-			*/
-			$pathIndexHtml = $this->getPluginPath() . '/build/index.html'; 
 
-			$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
-			$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $ErcHtmlFileName; // path in the temporary directory
+			// ERC html displayfile galley
+			if ($OJSERCPluginSettings[ERCHTMLGalley] === NULL) { 
+ 
+				/* 
+				Request to the o2r API, to get to know the filename of the displayfile of the ERC 
+				*/
+				$url = 'https://o2r.uni-muenster.de/api/v1/compendium/' . $ErcId; 
 
-			copy($pathIndexHtml, $temporaryIndexHtmlPath);  
+				$curl = curl_init($url);
+				curl_setopt($curl, CURLOPT_URL, $url);
+				curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
-			$rawHtmlFile = fopen($temporaryIndexHtmlPath, "r+");
-			$readHtmlFile = fread($rawHtmlFile, filesize($temporaryIndexHtmlPath)); 
+				//for debug only!
+				curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+				curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 
-			$positionConfigJs = strrpos($readHtmlFile, 'config.js"></script>'); // The ErcId must be inserted after the config.js, to overwrite the Id set in the config.js
-			$positionConfigErcID = $positionConfigJs + 20; 
+				$resp = curl_exec($curl);
+				curl_close($curl);
 
-			$scriptErcId = '<script>config.ercID =  "' . $ErcId . '"; </script>'; 
+				$jsonData = json_decode($resp);
+				$nameDisplayfile = $jsonData->metadata->o2r->displayfile;
 
-			$adaptedErcId = substr_replace($readHtmlFile, $scriptErcId, $positionConfigErcID, 0);
+				/*
+				Request to the o2r API, to get the displayFile. Then the file gets stored in a temporary directory. 
+				*/
+				$url = 'https://o2r.uni-muenster.de/api/v1/compendium/' . $ErcId . '/data/' . $nameDisplayfile; 
 
-			file_put_contents($temporaryIndexHtmlPath, $adaptedErcId);
-			fclose($rawHtmlFile);
+				$curl = curl_init($url);
+				curl_setopt($curl, CURLOPT_URL, $url);
+				curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
-			/*
-			Create new submission file.
-			Therefore first a file is uploaded an than this file is used to create a submission file.  
-			*/
-			$request = Application::get()->getRequest();
-			$context = $request->getContext();
-			$contextId = $context->getId(); 
-		
-			// id of the new created publication 
-			$submissionId = $newPublication->_data['id']; 
+				//for debug only!
+				curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+				curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 
-			// get path were the submission files are stored for this new submission 
-			$pathSubmissionFiles = Services::get('submissionFile')->getSubmissionDir($contextId, $submissionId);
+				$resp = curl_exec($curl);
+				curl_close($curl);
 
-			// store/ create new file 
-			$fileId = Services::get('file')->add($temporaryIndexHtmlPath, $pathSubmissionFiles . '/ERCGalley-' . $ErcId . '.html');
-			
-			$test = sys_get_temp_dir() . '/' . $ErcHtmlFileName; 
-			unlink(sys_get_temp_dir() . '/' . $ErcHtmlFileName); 
+				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+				$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $nameDisplayfile; // path in the temporary directory
 
-			// get userId 
-			$userId = Application::get()->getRequest()->getUser()->getId(); 
+				file_put_contents($temporaryIndexHtmlPath, $resp);
 
-			// get language properties 
-			$primaryLocale = $request->getContext()->getPrimaryLocale();
-			$allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
-	
-	
-			// set properties for the new submission file 
-			$params = [
-				'fileStage' => 2, // better use the constant PKP\submission\SubmissionFile::SUBMISSION_FILE_SUBMISSION, but dont know how 
-				'fileId' => $fileId,
-				'name' => [
-					$primaryLocale => 'ERCGalley-' . $ErcId . '.html',
-				],
-				'submissionId' => $submissionId,
-				'uploaderUserId' => $userId,
-				'genreId' => 1
-			];
-
-			// proof properties on errors 
-			$errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
-
-			// create the new submission file 
-			if (empty($errors)) {
-				$submissionFile = DAORegistry::getDao('SubmissionFileDAO')->newDataObject();
-				$submissionFile->setAllData($params);
-				$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
+				// create corresponding submission file and galley 
+				$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-HTML', $newPublication);
 			}
-		
-			/*
-			Create galley with the before uploaded submission file 
-			*/ 
-			$submissionFileId = $submissionFile->_data['id']; 
-			$articleGalleyDAO = DAORegistry::getDAO('ArticleGalleyDAO');
-			$galley = $articleGalleyDAO->newDataObject();
 
-			$galley->setData('submissionFileId', $submissionFileId); 
-			$galley->setLocale('en_US');
-			$galley->setData('publicationId', $submissionId);
-			$galley->setLabel('ERC');
-			$galley->setSequence(1);
-			$galley->setData('urlPath', 'erc-' . $ErcId);
-			$articleGalleyDAO->insertObject($galley);
+			// ERC o2r-ui galley 
+			if ($OJSERCPluginSettings[ERCo2ruiGalley] === NULL) { 
+
+				// get path were the initial html file for the galley is stored
+				$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
+			
+				$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
+			
+				/*
+				Update the index.html of the build in terms of the ErcId and store it at a temporary location  
+				*/
+				$pathIndexHtml = $this->getPluginPath() . '/build/index.html'; 
+
+				$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+				$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $ErcHtmlFileName; // path in the temporary directory
+
+				copy($pathIndexHtml, $temporaryIndexHtmlPath);  
+
+				$rawHtmlFile = fopen($temporaryIndexHtmlPath, "r+");
+				$readHtmlFile = fread($rawHtmlFile, filesize($temporaryIndexHtmlPath)); 
+
+				$positionConfigJs = strrpos($readHtmlFile, 'config.js"></script>'); // The ErcId must be inserted after the config.js, to overwrite the Id set in the config.js
+				$positionConfigErcID = $positionConfigJs + 20; 
+
+				$scriptErcId = '<script>config.ercID =  "' . $ErcId . '"; </script>'; 
+
+				$adaptedErcId = substr_replace($readHtmlFile, $scriptErcId, $positionConfigErcID, 0);
+
+				file_put_contents($temporaryIndexHtmlPath, $adaptedErcId);
+				fclose($rawHtmlFile);
+
+				// create corresponding submission file and galley 
+				$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-Galley', $newPublication);
+			}
+		} 		
+	}
+
+	/**
+	 * Function to create from a given file a submission file and corresponding galley in the OJS article view.
+	 * @param $temporaryIndexHtmlPath path of the html file in the temporary folder 
+	 * @param $ErcId given ErcId entered by the user 
+	 * @param $ERCGalleyType There are two galley types possible at the moment either the ''ERC-HTML'', where only the displayfile of the ERC is shown, 
+	 * or the 'ERC-Galley' where the o2r-ui is shown 
+	 * @param $newPublication information about the current publication 
+	 */
+	public function createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, $ERCGalleyType, $newPublication)
+	{
+		$request = Application::get()->getRequest();
+		$context = $request->getContext();
+		$contextId = $context->getId(); 
+
+		// id of the new created publication 
+		$submissionId = $newPublication->_data['id']; 
+
+		// get path were the submission files are stored for this new submission 
+		$pathSubmissionFiles = Services::get('submissionFile')->getSubmissionDir($contextId, $submissionId);
+
+		// store/ create new file 
+		$fileId = Services::get('file')->add($temporaryIndexHtmlPath, $pathSubmissionFiles . '/' . $ERCGalleyType . '-' . $ErcId . '.html');
+	
+		unlink($temporaryIndexHtmlPath); 
+
+		// get userId 
+		$userId = Application::get()->getRequest()->getUser()->getId(); 
+
+		// get language properties 
+		$primaryLocale = $request->getContext()->getPrimaryLocale();
+		$allowedLocales = $request->getContext()->getData('supportedSubmissionLocales');
+
+
+		// set properties for the new submission file 
+		$params = [
+			'fileStage' => 2, // better use the constant PKP\submission\SubmissionFile::SUBMISSION_FILE_SUBMISSION, but dont know how 
+			'fileId' => $fileId,
+			'name' => [
+				$primaryLocale => $ERCGalleyType . '-' . $ErcId . '.html',
+			],
+			'submissionId' => $submissionId,
+			'uploaderUserId' => $userId,
+			'genreId' => 1
+		];
+
+		// proof properties on errors 
+		$errors = Services::get('submissionFile')->validate(VALIDATE_ACTION_ADD, $params, $allowedLocales, $primaryLocale);
+
+		// create the new submission file 
+		if (empty($errors)) {
+			$submissionFile = DAORegistry::getDao('SubmissionFileDAO')->newDataObject();
+			$submissionFile->setAllData($params);
+			$submissionFile = Services::get('submissionFile')->add($submissionFile, $request);
 		}
+
+		/*
+		Create galley with the before uploaded submission file 
+		*/ 
+		$submissionFileId = $submissionFile->_data['id']; 
+		$articleGalleyDAO = DAORegistry::getDAO('ArticleGalleyDAO');
+		$galley = $articleGalleyDAO->newDataObject();
+
+		$galley->setData('submissionFileId', $submissionFileId); 
+		$galley->setLocale('en_US');
+		$galley->setData('publicationId', $submissionId);
+		$galley->setLabel($ERCGalleyType);
+		$galley->setSequence(1);
+		$galley->setData('urlPath', $ERCGalleyType . '-' . $ErcId);
+		$articleGalleyDAO->insertObject($galley);
 	}
 
 	/**

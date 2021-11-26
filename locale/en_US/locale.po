@@ -24,6 +24,12 @@ msgstr "Specify the o2r reproducibility service URL."
 msgid "plugins.generic.ojsErcPlugin.settings.serverURL"
 msgstr "URL to the o2r reproducibility service"
 
+msgid "plugins.generic.ojsErcPlugin.settings.ERCGalleyColour.description"
+msgstr "Specify the colour for the ERC Galley. Hereby the primary colour of the ERC Galley can be changed. The colour can be entered either by clicking on the left box with the colour and then using a ColorPicker, or by entering the HEX colour code in the text box on the right.  Other colours like secondary-, success-, warning-, failure colour can be changed manually https://github.com/o2r-project/o2r-UI/blob/master/ui/src/helpers/theme.js, then a build must be created accordingly and updated in the plugin."
+
+msgid "plugins.generic.ojsErcPlugin.settings.ERCGalleyColour"
+msgstr "Colour ERC Galley"
+
 msgid "plugins.generic.ojsErcPlugin.createErc"
 msgstr "ERC"
 
@@ -35,3 +41,15 @@ msgstr "ERC ID"
 
 msgid "plugins.generic.ojsErcPlugin.createErc.ErcId.description"
 msgstr "Insert the ERC identifier"
+  
+msgid "plugins.generic.ojsErcPlugin.settings.Release.description"
+msgstr "Here you can select the release of the o2r-ui which should be used by the plugin. The blue dot indicates which version is currently used. There is a risk that not all functions of the plugin are available for earlier versions. Especially for version 0.5.5 and all versions below difficulties may arise."
+
+msgid "plugins.generic.ojsErcPlugin.settings.GalleySettings.description"
+msgstr "Here you can control if there should be galleys for created ERCs during the submission process."
+
+msgid "plugins.generic.ojsErcPlugin.settings.GalleySettings.o2rui"
+msgstr "If the checkbox is checked, the o2r-ui galley creation is disabled. Otherwise, for each submission for which an ERC is created, an galley is created which shows the o2r-ui with the ERC."
+
+msgid "plugins.generic.ojsErcPlugin.settings.GalleySettings.html"
+msgstr "If the checkbox is checked, the html galley creation is disabled. Otherwise, for each submission for which an ERC is created, an galley is created which shows the displayfile/ main html of the ERC."
