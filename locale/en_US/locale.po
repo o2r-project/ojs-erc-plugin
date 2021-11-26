@@ -53,3 +53,6 @@ msgstr "If the checkbox is checked, the o2r-ui galley creation is disabled. Othe
 
 msgid "plugins.generic.ojsErcPlugin.settings.GalleySettings.html"
 msgstr "If the checkbox is checked, the html galley creation is disabled. Otherwise, for each submission for which an ERC is created, an galley is created which shows the displayfile/ main html of the ERC."
+
+msgid "plugins.generic.ojsErcPlugin.createErc.requestData"
+msgstr "Request metadata (here exemplary the title) for the in the input field stored ERC Id"

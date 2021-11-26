@@ -209,6 +209,7 @@ class ojsErcPlugin extends GenericPlugin
 
 			// main js scripts
 			$templateMgr->assign('pluginSettingsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/pluginSettings.js');
+			$templateMgr->assign('submissionMetadataFormFieldsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/submissionMetadataFormFields.js');
 		}
 		return $success;
 	}
