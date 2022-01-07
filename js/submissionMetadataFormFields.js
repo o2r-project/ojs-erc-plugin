@@ -19,3 +19,66 @@ function handleRequestErcData() {
        });
 
 }
+
+function sendZIP() {
+
+    // alte Idee mit Cookies 
+
+    document.cookie = "Set-Cookie: id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Secure; HttpOnly"
+    document.cookie = "name=oeschger; SameSite=None; Secure";
+    document.cookie = "favorite_food=tripe; SameSite=None; Secure";
+    
+    /*
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('name='))
+        .split('=')[1];
+    */
+    //console.log("name value = " + cookieValue); 
+
+    /*
+
+		// Setzen der Cookies
+		setcookie("cookie[vier]", "ffffd");
+		setcookie("HereWeGo", "wewewe", NULL, NULL, NULL, NULL, true);
+
+		$w = "test"; 
+    */
+		
+		
+    let allCookies = document.cookie;
+    console.log(allCookies);
+
+
+
+    // requests 
+    // o2r API doku: https://o2r.info/api/#operation/compendium_list_job 
+    // Who I am Request 
+    $.ajax({
+        type: 'GET',
+        url: 'http://localhost/api/v1/auth/whoami',
+        xhrFields: {
+            withCredentials: true
+    }}).done(function(res) {
+        console.log(res);
+    });
+
+    // Requets um check zu starten 
+    // Achtung dieser Request funktioniert grundsätzlich, aber lässt die UI abstürzen, Problem bekannt liegt nicht an uns 
+    // wenn der server hier abschmiert einfach control + c und neu starten mit: sudo docker-compose -f "docker-compose-dev.yml" up --build   without docker-compose down
+    var data = new FormData(); 
+    data.append("compendium_id", "dKcND"); // adapt ERC ID 
+    
+    $.ajax({
+        type: 'POST',
+        data: data,
+        processData: false, 
+        contentType: false, 
+        url: 'http://localhost/api/v1/job',
+        xhrFields: {
+            withCredentials: true
+    }}).done(function(res) {
+        console.log(res);
+    });
+
+}

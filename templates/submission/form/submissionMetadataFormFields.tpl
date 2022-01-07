@@ -21,6 +21,11 @@
     <button type="button" onclick="handleRequestErcData()">Request ErcData</button>
     {/fbvFormSection}
 
+    {*UploadErcInOjs*}
+    {fbvFormSection title="plugins.generic.ojsErcPlugin.uploadErc.sendZip" for="period" inline=true}
+    <button type="button" onclick="sendZIP()">Send ZIP</button>
+    {/fbvFormSection}
+
     {/fbvFormArea}
 </div>
 
