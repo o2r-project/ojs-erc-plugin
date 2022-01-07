@@ -2,7 +2,7 @@
 // import of genericPlugin
 import('lib.pkp.classes.plugins.GenericPlugin');
 import('lib.pkp.classes.submission.SubmissionFile');
-
+			
 use phpDocumentor\Reflection\Types\Null_;
 use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldHTML; // needed for function extendScheduleForPublication
@@ -10,6 +10,10 @@ use PKP\submission\SubmissionFile;
 use PKP\core\JSONMessage; // needed otherwise the JSONMessage in the manage-function is not possible 
 use APP\facades\Repo; // needed to get publication information 
 
+use PKP\db\DAORegistry; // needed to interact with the GenreDAO 
+
+
+			
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
  */
@@ -191,6 +195,44 @@ class ojsErcPlugin extends GenericPlugin
 				fclose($rawHtmlFile);
 			}
 
+
+
+			/*
+			Create ERC genre for submissions 
+			*/
+			$request = Application::get()->getRequest();
+			$context_id = $request->getContext()->getId(); 
+
+            $genreDAO = DAORegistry::getDAO('GenreDAO'); 
+			$allExistingGenres = $genreDAO->getByContextId($request->getContext()->getId())->toArray(); // not needed at the moment but interesting 
+			$ercGenreExists = $genreDAO->keyExists('ERC', $request->getContext()->getId()); 
+
+			/**
+			 * If there is no ERC genre already existing it is created 
+			 */
+			if ($ercGenreExists === false) { 
+
+				$ercGenre = $genreDAO->newDataObject();
+
+				$ercGenre->setKey("ERC");
+				$ercGenre->setContextId($request->getContext()->getId());
+				$ercGenre->setCategory(0);
+				$ercGenre->setDependent(0);
+				$ercGenre->setSupplementary(0);
+				$ercGenre->setSequence(0);
+				$ercGenre->setEnabled(1);
+
+				$primaryLocale = $request->getContext()->getPrimaryLocale();
+
+                $ercGenre->setName("Executable Research Compendium", $primaryLocale);
+
+				$genreDAO->insertObject($ercGenre);
+				
+				$genreId = $ercGenre->getId(); 
+
+				$genreDAO->getDataObjectSettings('genre_settings', 'genre_id', $genreId, $genre);
+			}
+
 			/* 
 			Hooks are the possibility to intervene the application. By the corresponding function which is named in the HookRegistery, the application
 			can be changed. 
@@ -210,6 +252,7 @@ class ojsErcPlugin extends GenericPlugin
 			// main js scripts
 			$templateMgr->assign('pluginSettingsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/pluginSettings.js');
 			$templateMgr->assign('submissionMetadataFormFieldsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/submissionMetadataFormFields.js');
+
 		}
 		return $success;
 	}
