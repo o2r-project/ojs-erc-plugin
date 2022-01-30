@@ -67,7 +67,7 @@ function sendZIP() {
     // Achtung dieser Request funktioniert grundsätzlich, aber lässt die UI abstürzen, Problem bekannt liegt nicht an uns 
     // wenn der server hier abschmiert einfach control + c und neu starten mit: sudo docker-compose -f "docker-compose-dev.yml" up --build   without docker-compose down
     var data = new FormData(); 
-    data.append("compendium_id", "dKcND"); // adapt ERC ID 
+    data.append("compendium_id", "NrdKu"); // adapt ERC ID 
     
     $.ajax({
         type: 'POST',

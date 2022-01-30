@@ -12,8 +12,8 @@ use APP\facades\Repo; // needed to get publication information
 
 use PKP\db\DAORegistry; // needed to interact with the GenreDAO 
 
+use Illuminate\Support\Facades\DB; // needed to interact with the OJS database 
 
-			
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
  */
@@ -203,7 +203,7 @@ class ojsErcPlugin extends GenericPlugin
 			$request = Application::get()->getRequest();
 			$context_id = $request->getContext()->getId(); 
 
-            $genreDAO = DAORegistry::getDAO('GenreDAO'); 
+            $genreDAO = DAORegistry::getDAO('GenreDAO'); // classes/submission/GenreDAO.inc.php 
 			$allExistingGenres = $genreDAO->getByContextId($request->getContext()->getId())->toArray(); // not needed at the moment but interesting 
 			$ercGenreExists = $genreDAO->keyExists('ERC', $request->getContext()->getId()); 
 
@@ -233,6 +233,7 @@ class ojsErcPlugin extends GenericPlugin
 				$genreDAO->getDataObjectSettings('genre_settings', 'genre_id', $genreId, $genre);
 			}
 
+
 			/* 
 			Hooks are the possibility to intervene the application. By the corresponding function which is named in the HookRegistery, the application
 			can be changed. 
@@ -246,6 +247,10 @@ class ojsErcPlugin extends GenericPlugin
 			HookRegistry::register('Schema::get::publication', array($this, 'addToSchema'));
 			HookRegistry::register('Publication::edit', array($this, 'editPublication')); // Take care, hook is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
 
+			// Hook for uploading a submission file if it is a ERC to o2r API
+			HookRegistry::register('submissionsubmitstep2form::execute', array($this, 'uploadCompendium'));
+
+
 			$request = Application::get()->getRequest();
 			$templateMgr = TemplateManager::getManager($request);
 
@@ -256,6 +261,106 @@ class ojsErcPlugin extends GenericPlugin
 		}
 		return $success;
 	}
+
+	/**
+	 * need to be implemented: 
+	 * - check if ERC is already uploaded for a created zip file if the user steps back in the submission process 
+	 */
+	public function uploadCompendium($hookName, $params) 
+	{
+
+		// get the genreId of the genre "ERC"
+		$genreDAO = DAORegistry::getDAO('GenreDAO'); // classes/submission/GenreDAO.inc.php 
+		$genreIdErc = $genreDAO->getByKey("ERC")->_data[id]; // not needed at the moment but interesting 
+
+		// id of current submission 
+		$submissionId = $params[0]->submissionId; 
+
+		/*
+		Request to the database table 'submission_files' to get the file id for the current submission 
+		where the genre is ERC. So to get the file id of the workspace-zip file. 
+		There was the need for a direct request to the database, as there was no OJS function available to search 
+		for the file ids of a corresponding submission.
+		*/
+		$databaseRequestFileId = DB::table('submission_files')
+			->where('submission_id', '=', $submissionId)
+			->where('genre_id', '=', $genreIdErc)
+			->get('file_id');
+
+		$fileIdOfWorkspaceZip = $databaseRequestFileId[0]->file_id; 
+
+		// if a workspace-zip with the genre ERC exists, then it is uploaded to the o2r server 
+
+		if ($fileIdOfWorkspaceZip !== null) {
+			/*
+			Request to the database table 'files' to get the path of the corresponding file id. So to get the path 
+			of the workspace-zip file. 
+			There was the need for a direct request to the database, as the OJS function which should be used for this 
+			shown here below, is not delivering the path for the current submission, only for the ones created before.
+
+			$submissionFileDao = DAORegistry::getDAO('SubmissionFileDAO');  
+			$test = $submissionFileDao->getById($fileIdOfWorkspaceZip); 
+			*/ 
+			$databaseRequestPath = DB::table('files')
+				->where('file_id', '=', $fileIdOfWorkspaceZip)
+				->get('path');
+
+			$pathOfWorkspaceZip = $databaseRequestPath[0]->path; 
+
+
+			// upload zip 
+
+
+
+
+
+
+
+			
+		}
+
+
+		// create job 
+		$postfields = array();
+		$postfields['compendium_id'] = 'wdgSp';
+	
+		$ch = curl_init();
+		curl_setopt($ch,CURLOPT_URL, 'http://localhost/api/v1/job');
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array("Cookie: connect.sid=s%3Avj6ZE7eNiUmzlsDWZ74ujHTIQsUF7M7A.E%2FhBWIZk%2Fgycva9QTsXUmO9jrZbWH3Jib%2Bl82bGneKw"));
+		curl_setopt($ch,CURLOPT_POST, true);
+		curl_setopt($ch,CURLOPT_POSTFIELDS, $postfields);
+		curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
+		$result = curl_exec($ch);
+		echo $result;
+
+		// upload via API 
+
+
+
+
+
+
+
+
+		/*
+		$.ajax({
+			type: 'POST',
+			data: data,
+			processData: false, 
+			contentType: false, 
+			url: 'http://localhost/api/v1/job',
+			xhrFields: {
+				withCredentials: true
+		}}).done(function(res) {
+			console.log(res);
+		});
+		
+		
+		*/ 
+
+	}
+
+
 
 	/**
 	 * Function which extends the submissionMetadataFormFields template and adds template variables concerning temporal- and spatial properties 
