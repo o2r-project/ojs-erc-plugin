@@ -264,7 +264,9 @@ class ojsErcPlugin extends GenericPlugin
 
 	/**
 	 * need to be implemented: 
-	 * - check if ERC is already uploaded for a created zip file if the user steps back in the submission process 
+	 * - check if ERC is already uploaded for a created zip file if the user steps back in the submission process, so that there are not two ERCs for the same zip  
+	 * - check that there is only one ERC per submission? 
+	 * --> solution for both could be if the ERC id is entered in the database so not equal to null, no further ERC can be created 
 	 */
 	public function uploadCompendium($hookName, $params) 
 	{
@@ -308,15 +310,19 @@ class ojsErcPlugin extends GenericPlugin
 			$pathOfWorkspaceZip = $databaseRequestPath[0]->path; 
 
 
-			// upload zip 
+			/* upload zip 
+			- https://o2r.info/api/#tag/Compendium 
+			- https://www.google.com/search?client=firefox-b-d&q=curl_setopt+multipart%2Fform-data 
+			- http://www.php-guru.in/2013/upload-files-using-php-curl/
+			- https://blog.cpming.top/p/php-curl-post-multipart
+			- https://gist.github.com/maxivak/18fcac476a2f4ea02e5f80b303811d5f 
+			*/
 
 
 
 
 
 
-
-			
 		}
 
 
