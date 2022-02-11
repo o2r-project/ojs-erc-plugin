@@ -14,6 +14,8 @@ use PKP\db\DAORegistry; // needed to interact with the GenreDAO
 
 use Illuminate\Support\Facades\DB; // needed to interact with the OJS database 
 
+use PKP\config\Config; // needed to get the directory of the uploaded files 
+
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
  */
@@ -307,32 +309,50 @@ class ojsErcPlugin extends GenericPlugin
 				->where('file_id', '=', $fileIdOfWorkspaceZip)
 				->get('path');
 
-			$pathOfWorkspaceZip = $databaseRequestPath[0]->path; 
+			$directoryOfWorkspaceZip = $databaseRequestPath[0]->path; 
 
-
+			$uploadedFilesDirectory = Config::getVar('files', 'files_dir'); 
+			$fullDirectoryOfWorkspaceZip = $uploadedFilesDirectory . '/' . $directoryOfWorkspaceZip; 
+			
 			/* upload zip 
 			- https://o2r.info/api/#tag/Compendium 
-			- https://www.google.com/search?client=firefox-b-d&q=curl_setopt+multipart%2Fform-data 
-			- http://www.php-guru.in/2013/upload-files-using-php-curl/
-			- https://blog.cpming.top/p/php-curl-post-multipart
+			- https://www.codefixup.com/how-to-send-files-via-post-with-curl-and-php-example/  
 			- https://gist.github.com/maxivak/18fcac476a2f4ea02e5f80b303811d5f 
 			*/
 
+			$headers = array(
+				'Cookie: connect.sid=s%3AvpspzYFC46nMVxx66OzFXAmYzxw6gP-e.zY%2F%2F8rObqc5ku%2BPwNUbY9YssR5PGzFmQOokBiI8GkAQ',
+				'Content-type: multipart/form-data'
+			); 
 
-
-
-
-
+			$url = 'http://localhost/api/v1/compendium';
+    
+			$csv_file = new CURLFile($fullDirectoryOfWorkspaceZip, 'application/zip');
+   
+			$post_data = array(
+   			   "compendium" => $csv_file,
+			   "content_type" => 'workspace'
+   			 );
+    
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_VERBOSE, true); # needed? 
+			curl_setopt($curl, CURLOPT_HEADER, false); # needed? 
+			curl_setopt($curl, CURLOPT_POST, true);
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+			$response = curl_exec($curl);
+			$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl); 			
 		}
-
 
 		// create job 
 		$postfields = array();
-		$postfields['compendium_id'] = 'wdgSp';
-	
+		$postfields['compendium_id'] = '6Ajod';
 		$ch = curl_init();
 		curl_setopt($ch,CURLOPT_URL, 'http://localhost/api/v1/job');
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array("Cookie: connect.sid=s%3Avj6ZE7eNiUmzlsDWZ74ujHTIQsUF7M7A.E%2FhBWIZk%2Fgycva9QTsXUmO9jrZbWH3Jib%2Bl82bGneKw"));
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array("Cookie: connect.sid=s%3AvpspzYFC46nMVxx66OzFXAmYzxw6gP-e.zY%2F%2F8rObqc5ku%2BPwNUbY9YssR5PGzFmQOokBiI8GkAQ"));
 		curl_setopt($ch,CURLOPT_POST, true);
 		curl_setopt($ch,CURLOPT_POSTFIELDS, $postfields);
 		curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
@@ -340,7 +360,7 @@ class ojsErcPlugin extends GenericPlugin
 		echo $result;
 
 		// upload via API 
-
+		$a = 20; 
 
 
 
