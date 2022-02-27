@@ -295,6 +295,8 @@ class ojsErcPlugin extends GenericPlugin
 
 		// if a workspace-zip with the genre ERC exists, then it is uploaded to the o2r server 
 
+		# $fileIdOfWorkspaceZip = null;  for testing purposes 
+
 		if ($fileIdOfWorkspaceZip !== null) {
 			/*
 			Request to the database table 'files' to get the path of the corresponding file id. So to get the path 
@@ -321,7 +323,7 @@ class ojsErcPlugin extends GenericPlugin
 			*/
 
 			$headers = array(
-				'Cookie: connect.sid=s%3AvpspzYFC46nMVxx66OzFXAmYzxw6gP-e.zY%2F%2F8rObqc5ku%2BPwNUbY9YssR5PGzFmQOokBiI8GkAQ',
+				'Cookie: connect.sid=s%3Aq6AbS19OEVBBKi4V3AKJYyOZk9xGMOP_.5xMU%2Fh9xoPFaSDHeymGAvayCUn%2FZG3C6tNegVe%2BAJIk',
 				'Content-type: multipart/form-data'
 			); 
 
@@ -332,7 +334,7 @@ class ojsErcPlugin extends GenericPlugin
 			$post_data = array(
    			   "compendium" => $csv_file,
 			   "content_type" => 'workspace'
-   			 );
+   			);
     
 			$curl = curl_init();
 			curl_setopt($curl, CURLOPT_VERBOSE, true); # needed? 
@@ -342,12 +344,59 @@ class ojsErcPlugin extends GenericPlugin
 			curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
 			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
-			$response = curl_exec($curl);
-			$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			$responseCompendium = curl_exec($curl);
+			$statusCompendium = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 			curl_close($curl); 			
 		}
 
+		$responseCompendium = '{"id":"QQnVv"}';
+		$compendiumId = json_decode($responseCompendium)->id;
+
+		# $statusCompendium = 200; for testing purposes 
+
+		if ($statusCompendium === 200) {
+
+			$headers = array(
+				'Cookie: connect.sid=s%3Aq6AbS19OEVBBKi4V3AKJYyOZk9xGMOP_.5xMU%2Fh9xoPFaSDHeymGAvayCUn%2FZG3C6tNegVe%2BAJIk',
+			); 
+
+			$url = 'http://localhost/api/v1/compendium/' . $compendiumId . '/metadata';
+        
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+			$responseGetMetadata = curl_exec($curl);
+			$statusGetMetadata = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl); 
+		}
+
+		$metadata = json_decode($responseGetMetadata);
+
+		$compendiumTitle = $metadata->metadata->o2r->title; 
+		$submissionId = $params[0]->submissionId; 
+
+		$request = Application::get()->getRequest();
+		$primaryLocale = $request->getContext()->getPrimaryLocale();
+
+		/*
+		The usual step to adapt the metadata (shown at the bottom of this comment) is not working here, 
+		it works only one step later with hook 'Publication::edit' in submission step 3. 
+		Thus there was the need to make a direkt entry into the database.
+
+		$currentPublication = $params[0];
+		$currentPublication->setData('title', $compendiumTitle, $primaryLocale); 
+		*/
+
+		DB::table('publication_settings')->insert([
+			'publication_id' => $submissionId,
+			'locale' => $primaryLocale, 
+			'setting_name' => 'title',
+			'setting_value' => $compendiumTitle, 
+		]); 
+
 		// create job 
+		/*
 		$postfields = array();
 		$postfields['compendium_id'] = '6Ajod';
 		$ch = curl_init();
@@ -358,31 +407,8 @@ class ojsErcPlugin extends GenericPlugin
 		curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
 		$result = curl_exec($ch);
 		echo $result;
-
-		// upload via API 
-		$a = 20; 
-
-
-
-
-
-
-
-		/*
-		$.ajax({
-			type: 'POST',
-			data: data,
-			processData: false, 
-			contentType: false, 
-			url: 'http://localhost/api/v1/job',
-			xhrFields: {
-				withCredentials: true
-		}}).done(function(res) {
-			console.log(res);
-		});
-		
-		
 		*/ 
+
 
 	}
 
