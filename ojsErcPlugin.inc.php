@@ -345,84 +345,85 @@ class ojsErcPlugin extends GenericPlugin
 			$responseCompendium = curl_exec($curl);
 			$statusCompendium = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 			curl_close($curl); 			
+		
+
+			$compendiumId = json_decode($responseCompendium)->id;
+
+			if ($statusCompendium === 200) {
+				// request for metadata of the candidate compendium 
+				$headers = array(
+					$serverCookie,
+				); 
+
+				$url = 'http://localhost/api/v1/compendium/' . $compendiumId . '/metadata';
+			
+				$curl = curl_init();
+				curl_setopt($curl, CURLOPT_URL, $url);
+				curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+				curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+				$responseGetMetadata = curl_exec($curl);
+				$statusGetMetadata = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+				curl_close($curl); 
+			}
+
+			// store metadata of the candidate compendium in the OJS database, so that they can be displayed in submission step 3 
+			$metadata = json_decode($responseGetMetadata);
+
+			$compendiumTitle = $metadata->metadata->o2r->title; 
+			$compendiumAbstract = $metadata->metadata->o2r->description; 
+
+			$submissionId = $params[0]->submissionId; 
+
+			$request = Application::get()->getRequest();
+			$primaryLocale = $request->getContext()->getPrimaryLocale();
+
+			/*
+			The usual step to adapt the metadata (shown at the bottom of this comment) is not working here, 
+			it works only one step later with hook 'Publication::edit' in submission step 3. 
+			Thus there was the need to make a direct entry into the database.
+
+			$currentPublication = $params[0];
+			$currentPublication->setData('title', $compendiumTitle, $primaryLocale); 
+			*/
+
+			// store title in the database 
+			DB::table('publication_settings')->insert([
+				'publication_id' => $submissionId,
+				'locale' => $primaryLocale, 
+				'setting_name' => 'title',
+				'setting_value' => $compendiumTitle, 
+			]); 
+
+			// store abstract in the database 
+			DB::table('publication_settings')->insert([
+				'publication_id' => $submissionId,
+				'locale' => $primaryLocale, 
+				'setting_name' => 'abstract',
+				'setting_value' => $compendiumAbstract, 
+			]); 
+
+			// store compendiumId in the database 
+			DB::table('publication_settings')->insert([
+				'publication_id' => $submissionId,
+				'locale' => $primaryLocale, 
+				'setting_name' => 'ojsErcPlugin::candidateCompendiumId',
+				'setting_value' => $compendiumId, 
+			]); 
+
+			// create job - example request 
+			/*
+			$postfields = array();
+			$postfields['compendium_id'] = '6Ajod';
+			$ch = curl_init();
+			curl_setopt($ch,CURLOPT_URL, 'http://localhost/api/v1/job');
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array("Cookie: connect.sid=s%3AvpspzYFC46nMVxx66OzFXAmYzxw6gP-e.zY%2F%2F8rObqc5ku%2BPwNUbY9YssR5PGzFmQOokBiI8GkAQ"));
+			curl_setopt($ch,CURLOPT_POST, true);
+			curl_setopt($ch,CURLOPT_POSTFIELDS, $postfields);
+			curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
+			$result = curl_exec($ch);
+			echo $result;
+			*/ 
 		}
-
-		$compendiumId = json_decode($responseCompendium)->id;
-
-		if ($statusCompendium === 200) {
-			// request for metadata of the candidate compendium 
-			$headers = array(
-				$serverCookie,
-			); 
-
-			$url = 'http://localhost/api/v1/compendium/' . $compendiumId . '/metadata';
-        
-			$curl = curl_init();
-			curl_setopt($curl, CURLOPT_URL, $url);
-			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
-			$responseGetMetadata = curl_exec($curl);
-			$statusGetMetadata = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-			curl_close($curl); 
-		}
-
-		// store metadata of the candidate compendium in the OJS database, so that they can be displayed in submission step 3 
-		$metadata = json_decode($responseGetMetadata);
-
-		$compendiumTitle = $metadata->metadata->o2r->title; 
-		$compendiumAbstract = $metadata->metadata->o2r->description; 
-
-		$submissionId = $params[0]->submissionId; 
-
-		$request = Application::get()->getRequest();
-		$primaryLocale = $request->getContext()->getPrimaryLocale();
-
-		/*
-		The usual step to adapt the metadata (shown at the bottom of this comment) is not working here, 
-		it works only one step later with hook 'Publication::edit' in submission step 3. 
-		Thus there was the need to make a direct entry into the database.
-
-		$currentPublication = $params[0];
-		$currentPublication->setData('title', $compendiumTitle, $primaryLocale); 
-		*/
-
-		// store title in the database 
-		DB::table('publication_settings')->insert([
-			'publication_id' => $submissionId,
-			'locale' => $primaryLocale, 
-			'setting_name' => 'title',
-			'setting_value' => $compendiumTitle, 
-		]); 
-
-		// store abstract in the database 
-		DB::table('publication_settings')->insert([
-			'publication_id' => $submissionId,
-			'locale' => $primaryLocale, 
-			'setting_name' => 'abstract',
-			'setting_value' => $compendiumAbstract, 
-		]); 
-
-		// store compendiumId in the database 
-		DB::table('publication_settings')->insert([
-			'publication_id' => $submissionId,
-			'locale' => $primaryLocale, 
-			'setting_name' => 'ojsErcPlugin::candidateCompendiumId',
-			'setting_value' => $compendiumId, 
-		]); 
-
-		// create job - example request 
-		/*
-		$postfields = array();
-		$postfields['compendium_id'] = '6Ajod';
-		$ch = curl_init();
-		curl_setopt($ch,CURLOPT_URL, 'http://localhost/api/v1/job');
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array("Cookie: connect.sid=s%3AvpspzYFC46nMVxx66OzFXAmYzxw6gP-e.zY%2F%2F8rObqc5ku%2BPwNUbY9YssR5PGzFmQOokBiI8GkAQ"));
-		curl_setopt($ch,CURLOPT_POST, true);
-		curl_setopt($ch,CURLOPT_POSTFIELDS, $postfields);
-		curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
-		$result = curl_exec($ch);
-		echo $result;
-		*/ 
 	}
 
 	/**
