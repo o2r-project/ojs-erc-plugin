@@ -20,30 +20,30 @@ function handleRequestErcData() {
 
 }
 
+/*
+function not used anymore, initial tries to connect with o2r server 
 function sendZIP() {
-
-    // alte Idee mit Cookies 
 
     document.cookie = "Set-Cookie: id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Secure; HttpOnly"
     document.cookie = "name=oeschger; SameSite=None; Secure";
     document.cookie = "favorite_food=tripe; SameSite=None; Secure";
     
-    /*
-    const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('name='))
-        .split('=')[1];
-    */
+    
+    //const cookieValue = document.cookie
+    //    .split('; ')
+    //    .find(row => row.startsWith('name='))
+    //    .split('=')[1];
+    
     //console.log("name value = " + cookieValue); 
 
-    /*
+    
 
-		// Setzen der Cookies
-		setcookie("cookie[vier]", "ffffd");
-		setcookie("HereWeGo", "wewewe", NULL, NULL, NULL, NULL, true);
+	// Setzen der Cookies
+	//setcookie("cookie[vier]", "ffffd");
+	//setcookie("HereWeGo", "wewewe", NULL, NULL, NULL, NULL, true);
 
-		$w = "test"; 
-    */
+	//$w = "test"; 
+    
 		
 		
     let allCookies = document.cookie;
@@ -63,9 +63,9 @@ function sendZIP() {
         console.log(res);
     });
 
-    // Requets um check zu starten 
-    // Achtung dieser Request funktioniert grundsätzlich, aber lässt die UI abstürzen, Problem bekannt liegt nicht an uns 
-    // wenn der server hier abschmiert einfach control + c und neu starten mit: sudo docker-compose -f "docker-compose-dev.yml" up --build   without docker-compose down
+    // request to start check 
+    // Attention this request basically works but crashes the UI at the moment 
+    // it the server is not working anymore just "control + c" and restart with "sudo docker-compose -f "docker-compose-dev.yml" up --build" without "docker-compose down"
     var data = new FormData(); 
     data.append("compendium_id", "NrdKu"); // adapt ERC ID 
     
@@ -81,4 +81,4 @@ function sendZIP() {
         console.log(res);
     });
 
-}
+}*/

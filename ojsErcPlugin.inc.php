@@ -242,7 +242,7 @@ class ojsErcPlugin extends GenericPlugin
 			*/
 		
 			// Hooks for creating and setting a new field in the database 
-			/* both functions are not needed, as the database entries are done directly without schema (addToSchema) and 
+			/* both functions below are not needed, as the database entries are done directly without schema (addToSchema) and 
 			function editPublication is integrated in the function publishCompendium. 
 			*/ 
 			######HookRegistry::register('Schema::get::publication', array($this, 'addToSchema')); 
@@ -258,7 +258,7 @@ class ojsErcPlugin extends GenericPlugin
 
 			// main js scripts
 			$templateMgr->assign('pluginSettingsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/pluginSettings.js');
-			//$templateMgr->assign('submissionMetadataFormFieldsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/submissionMetadataFormFields.js');
+			//$templateMgr->assign('submissionMetadataFormFieldsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/submissionMetadataFormFields.js'); // Template is not used at the moment, but could be used to implement a possibility for the user to insert an ID of an existing ERC and connect it to a submission.
 
 		}
 		return $success;
@@ -281,7 +281,7 @@ class ojsErcPlugin extends GenericPlugin
 
 		// get the genreId of the genre "ERC"
 		$genreDAO = DAORegistry::getDAO('GenreDAO'); // classes/submission/GenreDAO.inc.php 
-		$genreIdErc = $genreDAO->getByKey("ERC")->_data[id]; // not needed at the moment but interesting 
+		$genreIdErc = $genreDAO->getByKey("ERC")->_data[id];
 
 		// id of current submission 
 		$submissionId = $params[0]->submissionId; 
@@ -610,7 +610,7 @@ class ojsErcPlugin extends GenericPlugin
 	}
 
 	/**
-	 * ##### not needed, as the ErcId is stored directly in the database as ojsErcPlugin::candidateCompendiumId 
+	 * not needed, as the ErcId is stored directly in the database as ojsErcPlugin::candidateCompendiumId 
 	 * 
 	 * Function which extends the schema of the publication_settings table in the database. 
 	 * There are two further rows in the table one for the spatial properties, and one for the timestamp. 
@@ -634,7 +634,7 @@ class ojsErcPlugin extends GenericPlugin
 	}
 
 	/**
-	 * ##### not needed, as the function is integrated in function updateCompendium 
+	 * not needed, as the function is integrated in function updateCompendium 
 	 * 
 	 * Function which fills the new fields (created by the function addToSchema) in the schema. 
 	 * The data is collected using the 'submissionMetadataFormFields.js', then passed as input to the 'submissionMetadataFormFields.tpl'

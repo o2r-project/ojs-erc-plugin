@@ -1,5 +1,6 @@
-{*the main template is here extended using the hook
-'Templates::Submission::SubmissionMetadataForm::AdditionalMetadata'*}
+{*the main template is here extended using the hook 'Templates::Submission::SubmissionMetadataForm::AdditionalMetadata'*}
+{*template is not used at the moment, but could be used to implement a possibility for the user to insert an ID of an existing ERC and connect it to a submission*}
+{*the elements shown below were used for the intital attempts to connect with the o2r server*}
 
 <div style="clear:both;">
     {fbvFormArea id="tagitFields" title="plugins.generic.ojsErcPlugin.createErc"}
