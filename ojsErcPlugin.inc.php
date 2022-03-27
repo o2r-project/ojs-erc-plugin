@@ -9,11 +9,8 @@ use \PKP\components\forms\FieldHTML; // needed for function extendScheduleForPub
 use PKP\submission\SubmissionFile;
 use PKP\core\JSONMessage; // needed otherwise the JSONMessage in the manage-function is not possible 
 use APP\facades\Repo; // needed to get publication information 
-
 use PKP\db\DAORegistry; // needed to interact with the GenreDAO 
-
 use Illuminate\Support\Facades\DB; // needed to interact with the OJS database 
-
 use PKP\config\Config; // needed to get the directory of the uploaded files 
 
 /**
