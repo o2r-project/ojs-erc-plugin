@@ -2,13 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 27.03.22 
+## [0.1.1] - 28.03.22 
 
 ### Added 
+- implemented possibility to add an ErcId to the submission in submission step 3. which enables to add an existing ERC to a submission (currently commented out)
+- the genre "Executable Research Compendium" is added by the plugin, by selecting this genre in submission step 2., the uploaded zip is uploaded to the o2r service and becomes a candidate 
+- request to the o2r service at the end of submission step 2. to upload the inserted workspace.zip to the o2r service so that it becomes a candidate 
+- request to the o2r service at the end of submission step 2. to receive automatically extracted metadata of the just created candidate and insert them in the OJS submission step 3. (currently title and abstract)
+- request to the o2r service at the end of submission step 3. to publish the in submission step 2. created candidate. The in OJS adapted metadata are also adpated correspondingly in the o2r service 
+- option to add the o2r server cookie in the OJS plugin settings, so that an connection from OJS to the o2r service can be built  
 
 ### Fixed
 
 ### Changed 
+- way to use the FormValidator in the plugin settings and the way to receive publication information (Repo) to fit the current OJS version 
 
 ## [Unreleased] - 21.11.21 
 

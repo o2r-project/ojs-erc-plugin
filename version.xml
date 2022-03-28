@@ -3,8 +3,8 @@
 <version>
 	<application>ojs-erc-plugin</application>
 	<type>plugins.generic</type>
-	<release>0.1.0</release>
-	<date>2021-06-25</date>
+	<release>0.1.1</release>
+	<date>2022-03-28</date>
 	<lazy-load>1</lazy-load>
 	<class>ojsErcPlugin</class>
 </version>
