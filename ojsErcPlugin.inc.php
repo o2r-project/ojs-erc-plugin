@@ -121,7 +121,8 @@ class ojsErcPlugin extends GenericPlugin
 
 				// colour 
 				$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-				$context = PKPApplication::getRequest()->getContext();
+ 				$pkpApplication = new PKPApplication();
+				$context = $pkpApplication->getRequest()->getContext();
 				$contextId = $context ? $context->getId() : 0;
 				$defaultThemePluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'DefaultThemePlugin');
 				$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
@@ -272,7 +273,8 @@ class ojsErcPlugin extends GenericPlugin
 	{
 		// loading OJS ERC plugin settings 
 		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-		$context = PKPApplication::getRequest()->getContext();
+		$pkpApplication = new PKPApplication();
+		$context = $pkpApplication->getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
 		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
@@ -433,7 +435,8 @@ class ojsErcPlugin extends GenericPlugin
 	{
 		// loading OJS ERC plugin settings 
 		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-		$context = PKPApplication::getRequest()->getContext();
+		$pkpApplication = new PKPApplication();
+		$context = $pkpApplication->getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
 		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
@@ -653,7 +656,8 @@ class ojsErcPlugin extends GenericPlugin
 
 		// loading OJS ERC plugin settings 
 		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-		$context = PKPApplication::getRequest()->getContext();
+		$pkpApplication = new PKPApplication();
+		$context = $pkpApplication->getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
 
