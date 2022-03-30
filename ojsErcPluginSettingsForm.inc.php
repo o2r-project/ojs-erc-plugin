@@ -120,7 +120,7 @@ class ojsErcPluginSettingsForm extends Form
     /**
      * Save the settings
      */
-    public function execute()
+    public function execute(...$args)
     {
         $contextId = Application::get()->getRequest()->getContext()->getId();
 
