@@ -29,7 +29,6 @@ jobs:
         run: |
           cd test
           sudo docker-compose up -d 
-          sudo docker-compose exec ojs chmod -R 777 /var/www/html/plugins/generic/
 
       - name: Info OJS and database
         run: echo -e '\033[1;32mThe Database and OJS containers have been setup and are now running.\033[0m' 
