@@ -278,11 +278,11 @@ class ojsErcPlugin extends GenericPlugin
 		$context = $pkpApplication->getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
-		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
+		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings['serverCookie'];
 
 		// get the genreId of the genre "ERC"
 		$genreDAO = DAORegistry::getDAO('GenreDAO'); // classes/submission/GenreDAO.inc.php 
-		$genreIdErc = $genreDAO->getByKey("ERC")->_data[id];
+		$genreIdErc = $genreDAO->getByKey("ERC")->_data['id'];
 
 		// id of current submission 
 		$submissionId = $params[0]->submissionId; 
@@ -440,7 +440,7 @@ class ojsErcPlugin extends GenericPlugin
 		$context = $pkpApplication->getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
-		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
+		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings['serverCookie'];
 
  		$request = Application::get()->getRequest();
 		$context = $request->getContext();
@@ -482,8 +482,8 @@ class ojsErcPlugin extends GenericPlugin
 			Adapt metadata to the changes done in OJS submission step 3 
 			*/
 			// get by the user adapted variables 
-			$title = $params[2][title][en_US];  
-			$abstractWithP = $params[2]['abstract'][en_US];  
+			$title = $params[2]['title']['en_US'];  
+			$abstractWithP = $params[2]['abstract']['en_US'];  
 			$abstract = substr($abstractWithP, 3, -4); 
 
 			// adapt metadata element of compendium 
@@ -527,12 +527,12 @@ class ojsErcPlugin extends GenericPlugin
 			if ($ErcId !== null && $ErcId !== "") {
 
 				// ERC html displayfile galley
-				if ($OJSERCPluginSettings[ERCHTMLGalley] === NULL) { 
+				if ($OJSERCPluginSettings['ERCHTMLGalley'] === NULL) { 
 	
 					/* 
 					Request to the o2r API, to get to know the filename of the displayfile of the ERC 
 					*/
-					$url = $OJSERCPluginSettings[serverURL] . 'compendium/' . $ErcId; 
+					$url = $OJSERCPluginSettings['serverURL'] . 'compendium/' . $ErcId; 
 
 					$curl = curl_init($url);
 					curl_setopt($curl, CURLOPT_URL, $url);
@@ -551,7 +551,7 @@ class ojsErcPlugin extends GenericPlugin
 					/*
 					Request to the o2r API, to get the displayFile. Then the file gets stored in a temporary directory. 
 					*/
-					$url = $OJSERCPluginSettings[serverURL] . 'compendium/' . $ErcId . '/data/' . $nameDisplayfile; 
+					$url = $OJSERCPluginSettings['serverURL'] . 'compendium/' . $ErcId . '/data/' . $nameDisplayfile; 
 
 					$curl = curl_init($url);
 					curl_setopt($curl, CURLOPT_URL, $url);
