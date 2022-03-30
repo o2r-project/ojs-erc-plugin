@@ -16,8 +16,10 @@ class ojsErcPluginSettingsForm extends Form
         $this->plugin = $plugin;
 
         // Always add POST and CSRF validation to secure your form.
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        #$this->addCheck(new FormValidatorPost($this)); in earlier versions named this way but changed to the one below 
+        #$this->addCheck(new FormValidatorCSRF($this)); in earlier versions named this way but changed to the one below 
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
     }
 
     /**
@@ -30,6 +32,7 @@ class ojsErcPluginSettingsForm extends Form
     {        
         $contextId = Application::get()->getRequest()->getContext()->getId();
         $this->setData('serverURL', $this->plugin->getSetting($contextId, 'serverURL'));
+        $this->setData('serverCookie', $this->plugin->getSetting($contextId, 'serverCookie'));
         $this->setData('ERCGalleyColourFromDb', $this->plugin->getSetting($contextId, 'ERCGalleyColour'));
         $this->setData('releaseVersionFromDb', $this->plugin->getSetting($contextId, 'releaseVersion'));
         $this->setData('ERCo2ruiGalley', $this->plugin->getSetting($contextId, 'ERCo2ruiGalley'));
@@ -45,6 +48,7 @@ class ojsErcPluginSettingsForm extends Form
     public function readInputData()
     {
         $this->readUserVars(['serverURL']);
+        $this->readUserVars(['serverCookie']);
         $this->readUserVars(['ERCGalleyColour']);
         $this->readUserVars(['releaseVersion']);
         $this->readUserVars(['ERCo2ruiGalley']);
@@ -116,11 +120,12 @@ class ojsErcPluginSettingsForm extends Form
     /**
      * Save the settings
      */
-    public function execute()
+    public function execute(...$args)
     {
         $contextId = Application::get()->getRequest()->getContext()->getId();
 
         $this->plugin->updateSetting($contextId, 'serverURL', $this->getData('serverURL'));
+        $this->plugin->updateSetting($contextId, 'serverCookie', $this->getData('serverCookie'));
         $this->plugin->updateSetting($contextId, 'ERCGalleyColour', $this->getData('ERCGalleyColour'));
         $this->plugin->updateSetting($contextId, 'ERCo2ruiGalley', $this->getData('ERCo2ruiGalley'));
         $this->plugin->updateSetting($contextId, 'ERCHTMLGalley', $this->getData('ERCHTMLGalley'));

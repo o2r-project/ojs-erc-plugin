@@ -57,9 +57,6 @@ function handleRadioCheckChange(radio) {
     document.getElementById("releaseVersion").value = radio.id; 
 }
 
-
-
-
 /** 
  * Functions to enable a colour picker.
  * Initially the colour stored in the database is displayed (both in the text field, and in the colour picker), if none is stored the colour is black

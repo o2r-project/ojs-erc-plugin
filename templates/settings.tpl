@@ -23,6 +23,20 @@
         }
         {/fbvFormSection}
         {/fbvFormArea}
+    
+    {*serverCookie*} 
+    {fbvFormArea}
+    {fbvFormSection list=true}
+    <p align="justify" class="description" style="color: rgba(0,0,0,0.54)">{translate
+        key="plugins.generic.ojsErcPlugin.settings.serverCookie.description"}
+        {fbvElement
+        type="text"
+        id="serverCookie"
+        value=$serverCookie
+        label="plugins.generic.ojsErcPlugin.settings.serverCookie"
+        }
+        {/fbvFormSection}
+        {/fbvFormArea}
 
     {*colorPicker*}
     {fbvFormArea}
