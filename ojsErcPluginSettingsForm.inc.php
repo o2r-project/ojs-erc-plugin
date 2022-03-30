@@ -63,8 +63,8 @@ class ojsErcPluginSettingsForm extends Form
 		$rawConfigFile = fopen($pathConfigJs, "r+");
 		$readConfigFile = fread($rawConfigFile, filesize($pathConfigJs)); 
 
-		$baseUrlSpecifiedInSettings = $this->_data[serverURL]; 
-		$ERCGalleyColourSpecifiedInSettings = $this->_data[ERCGalleyColour]; 
+		$baseUrlSpecifiedInSettings = $this->_data['serverURL']; 
+		$ERCGalleyColourSpecifiedInSettings = $this->_data['ERCGalleyColour']; 
 
 		preg_match('/"baseUrl":\s"[^,]*"/', $readConfigFile, $configOld);        
 		$configNew = '"baseUrl": "' . $baseUrlSpecifiedInSettings . '"'; 
@@ -88,7 +88,7 @@ class ojsErcPluginSettingsForm extends Form
         $releaseVersionFromDb = $this->plugin->getSetting($contextId, 'releaseVersion');
 
         // build version specified by the user 
-        $releaseVersion = $this->_data[releaseVersion];
+        $releaseVersion = $this->_data['releaseVersion'];
 
         // path of the currently used build folder 
         $pathBuildFolder = $this->plugin->pluginPath . '/build'; 
