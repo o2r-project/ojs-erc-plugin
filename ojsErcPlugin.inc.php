@@ -1,7 +1,8 @@
 <?php
 // import of genericPlugin
 import('lib.pkp.classes.plugins.GenericPlugin');
-import('lib.pkp.classes.submission.SubmissionFile');
+// import('lib.pkp.classes.submission.SubmissionFile');
+import('lib.pkp.classes.submissionFile.SubmissionFile');
 			
 use phpDocumentor\Reflection\Types\Null_;
 use \PKP\components\forms\FormComponent;
