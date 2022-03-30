@@ -33,27 +33,4 @@ describe('Setup in general is tested', () => {
 
 	});
 
-	it('Visit the journal site and find the ERC Plugin', () => {
-		cy.login('o2r', 'o2r', 'index'); 
-		cy.visit('/o2rn/management/settings/website#plugins');
-
-		cy.wait(5000);
-		cy.get('input[id*="select-cell-ojsercplugin-enabled"]').click();
-
-		/*
-			If the test fails here that means the the build folder could not be unzipped in time which is likely a memory issue.
-			In that case please consult the Readme.md file in the test directory.	
-		*/
-		cy.get('div:contains(\'The plugin "ojs-erc-plugin" has been enabled.\')', {timeout:120000});
-
-		cy.get('tr[id*="ojsercplugin"] a.show_extras').click({force: true});
-		cy.get('a[id*="ojsercplugin-settings"]').click({force: true});
-
-		cy.wait(1000);
-		cy.get('input#ERCGalleyColour').scrollIntoView().clear().type('#9012a3');
-		cy.get('input[type=radio]').last().scrollIntoView().check();
-		cy.get('button.submitFormButton').contains('Save').scrollIntoView().contains('Save').click();
-		cy.get('div:contains(\'Your changes have been saved.\')');
-	});
-
   })
