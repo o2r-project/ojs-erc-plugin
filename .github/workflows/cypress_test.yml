@@ -31,5 +31,8 @@ jobs:
       - name: Cypress run docker 
         run: |
           #docker pull cypress/included:3.2.0
-          docker run -v $PWD/test/cypress:/test  -w /test --entrypoint=cypress --network="test_inside" --name cypress-docker cypress/included:3.2.0 run 
+          docker run -v $PWD/test/cypress:/test  -w /test --entrypoint=cypress --network="test_inside" --name cypress-docker cypress/included:3.2.0 run
+      - name: Log build dir
+        run: ls build/static
+        
       
