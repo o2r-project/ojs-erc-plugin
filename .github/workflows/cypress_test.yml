@@ -20,11 +20,6 @@ jobs:
           sudo apt-get -qq update
           sudo apt-get -qq install docker-compose
 
-      - name: Localhost replace
-        run: |
-          perl -i  -0pe  's/(<\?php)/$1\n ini_set\("max\_execution\_time", "0"\);\n ini_set\("memory\_limit", "128M"\);/g' ojsErcPlugin.inc.php
-          
-
       - name: Start OJS Docker       
         run: |
           cd test
