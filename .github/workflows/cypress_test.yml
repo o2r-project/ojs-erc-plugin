@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - test_dev
   workflow_dispatch:
 
 jobs: 
@@ -19,6 +20,10 @@ jobs:
         run: |
           sudo apt-get -qq update
           sudo apt-get -qq install docker-compose
+
+      - name: Enable faster unzipping of build in php
+        run: |
+          perl -i  -0pe  's/(<\?php)/$1\n ini_set\("max\_execution\_time", "0"\);\n ini_set\("memory\_limit", "128M"\);/g' ojsErcPlugin.inc.php
 
       - name: Start OJS Docker       
         run: |
