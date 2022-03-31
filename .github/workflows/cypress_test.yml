@@ -1,0 +1,36 @@
+name: CI test with cypress
+
+on:
+  push:
+    branches:
+    - master
+  workflow_dispatch:
+
+jobs: 
+  build_OJS:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+
+      - name: Installs
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install docker-compose
+
+      - name: Start OJS Docker       
+        run: |
+          sudo chmod -R 777 .
+          cd test
+          sudo docker-compose up -d 
+
+      - name: Info OJS and database
+        run: echo -e '\033[1;32mThe Database and OJS containers have been setup and are now running.\033[0m' 
+
+      - name: Cypress run docker 
+        run: |
+          #docker pull cypress/included:3.2.0
+          docker run -v $PWD/test/cypress:/test  -w /test --entrypoint=cypress --network="test_inside" --name cypress-docker cypress/included:3.2.0 run        
+      

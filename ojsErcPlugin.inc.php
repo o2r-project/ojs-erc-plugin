@@ -1,4 +1,5 @@
 <?php
+
 // import of genericPlugin
 import('lib.pkp.classes.plugins.GenericPlugin');
 import('lib.pkp.classes.submission.SubmissionFile');
@@ -65,7 +66,7 @@ class ojsErcPlugin extends GenericPlugin
 						unlink($pathZip); // delete temporary file 
 
 					} else {
- 			 	  	//echo 'error';
+ 			 	  		//echo 'error';
 					}
 				}
 				else {
@@ -163,13 +164,15 @@ class ojsErcPlugin extends GenericPlugin
   				{
 					$adaptedHtml = $readHtmlFile;
 
+					if (!preg_match('/http:\/\/ojs/', $adaptedHtml)){
+						
 					foreach ($regularExpressions as $key => $value) {
 
 						$oldHtmlFile = $adaptedHtml; 
-
 						preg_match($value, $oldHtmlFile, $oldPath);
-					   	$newPath = $baseUrl . '/' . $pluginPath . '/build/' . substr($oldPath[0], 1); 
-					   	$adaptedHtml = str_replace($oldPath[0], $newPath, $oldHtmlFile);
+					   	$newPath = $baseUrl . '/' . $pluginPath . '/build/' . substr($oldPath[0], 1);
+					   	$adaptedHtml = str_replace($oldPath[0], $newPath, $oldHtmlFile);						
+						}
 					}
 
 					return $adaptedHtml; 
