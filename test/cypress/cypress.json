@@ -2,6 +2,6 @@
     "baseUrl": "http://ojs:80/",
     "integrationFolder": ".",
     "testFiles": "**.spec.js",
-    "video": true,
+    "video": false,
     "chromeWebSecurity": false
 }

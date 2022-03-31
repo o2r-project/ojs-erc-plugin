@@ -44,6 +44,14 @@ sudo bash ract_complete.sh
 
 Please note that you view videos of the UI tests in [./cypress/cypress/videos](./cypress/cypress/videos) if enable them by setting `video` to `true` in the [cypress.json](./cypress/cypress.json).
 
+A problem is that for local testing is the chmod command of the workflow is not executed. This will lead to this error:
+```
+1) Setup in general is tested Visit the journal site and find the ERC Plugin:
+     CypressError: Timed out retrying: Expected to find element: 'a[id*="ojsercplugin-settings"]', but never found it.
+```
+You can fix this be running `sudo chmod -R 777 .` in the main dir of this plugin.
+
+
 You can also run into problems with memory usage when executing the test flow multiple times in succession. I have taken some measures to deal with it.
 However please take at least a minute between runs to ensure smooth execution.  
 This indicated by the following error messages:
