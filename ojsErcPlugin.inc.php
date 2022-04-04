@@ -3,11 +3,16 @@
 // import of genericPlugin
 import('lib.pkp.classes.plugins.GenericPlugin');
 import('lib.pkp.classes.submission.SubmissionFile');
-
+			
 use phpDocumentor\Reflection\Types\Null_;
 use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldHTML; // needed for function extendScheduleForPublication
 use PKP\submission\SubmissionFile;
+use PKP\core\JSONMessage; // needed otherwise the JSONMessage in the manage-function is not possible 
+use APP\facades\Repo; // needed to get publication information 
+use PKP\db\DAORegistry; // needed to interact with the GenreDAO 
+use Illuminate\Support\Facades\DB; // needed to interact with the OJS database 
+use PKP\config\Config; // needed to get the directory of the uploaded files 
 
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
@@ -86,8 +91,7 @@ class ojsErcPlugin extends GenericPlugin
 				$contextId = Application::get()->getRequest()->getContext()->getId();
 				$baseUrlErcFromSettings = $this->getSetting($contextId, 'serverURL'); 
 
-				$baseUrlErcStandard= "https://o2r.uni-muenster.de/api/v1/"; 
-
+				$baseUrlErcStandard= "https://o2r.uni-muenster.de/api/v1/";
 				
 				// if there is no url available from the plugin settings the standard url is used and correspondingly set in the database (ojs-erc-plugin settings) 
 				if ($baseUrlErcFromSettings === null || $baseUrlErcFromSettings === '') {
@@ -192,81 +196,422 @@ class ojsErcPlugin extends GenericPlugin
 				fclose($rawHtmlFile);
 			}
 
+
+
+			/*
+			Create ERC genre for submissions 
+			*/
+			$request = Application::get()->getRequest();
+			$context_id = $request->getContext()->getId(); 
+
+            $genreDAO = DAORegistry::getDAO('GenreDAO'); // classes/submission/GenreDAO.inc.php 
+			$allExistingGenres = $genreDAO->getByContextId($request->getContext()->getId())->toArray(); // not needed at the moment but interesting 
+			$ercGenreExists = $genreDAO->keyExists('ERC', $request->getContext()->getId()); 
+
+			/**
+			 * If there is no ERC genre already existing it is created 
+			 */
+			if ($ercGenreExists === false) { 
+
+				$ercGenre = $genreDAO->newDataObject();
+
+				$ercGenre->setKey("ERC");
+				$ercGenre->setContextId($request->getContext()->getId());
+				$ercGenre->setCategory(0);
+				$ercGenre->setDependent(0);
+				$ercGenre->setSupplementary(0);
+				$ercGenre->setSequence(0);
+				$ercGenre->setEnabled(1);
+
+				$primaryLocale = $request->getContext()->getPrimaryLocale();
+
+                $ercGenre->setName("Executable Research Compendium", $primaryLocale);
+
+				$genreDAO->insertObject($ercGenre);
+				
+				$genreId = $ercGenre->getId(); 
+
+				$genreDAO->getDataObjectSettings('genre_settings', 'genre_id', $genreId, $genre);
+			}
+
+
 			/* 
 			Hooks are the possibility to intervene the application. By the corresponding function which is named in the HookRegistery, the application
 			can be changed. 
 			Further information here: https://docs.pkp.sfu.ca/dev/plugin-guide/en/categories#generic 
 			*/
-
-			// Hooks for changing the frontent Submit an Article 3. Enter Metadata 
-			HookRegistry::register('Templates::Submission::SubmissionMetadataForm::AdditionalMetadata', array($this, 'extendSubmissionMetadataFormTemplate'));
 		
-			// Hook for creating and setting a new field in the database 
-			HookRegistry::register('Schema::get::publication', array($this, 'addToSchema'));
-			HookRegistry::register('Publication::edit', array($this, 'editPublication')); // Take care, hook is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
+			// Hooks for creating and setting a new field in the database 
+			/* both functions below are not needed, as the database entries are done directly without schema (addToSchema) and 
+			function editPublication is integrated in the function publishCompendium. 
+			*/ 
+			######HookRegistry::register('Schema::get::publication', array($this, 'addToSchema')); 
+			######HookRegistry::register('Publication::edit', array($this, 'editPublication')); // Take care, hook is called twice, first during Submission Workflow and also before Schedule for Publication in the Review Workflow!!!
+
+			// Hooks for uploading, publishing and updating a workspace.zip uploaded in the submission process o2r API
+			HookRegistry::register('submissionsubmitstep2form::execute', array($this, 'uploadCompendium'));
+						
+			HookRegistry::register('Publication::edit', array($this, 'updateCompendium'));
 
 			$request = Application::get()->getRequest();
 			$templateMgr = TemplateManager::getManager($request);
 
 			// main js scripts
 			$templateMgr->assign('pluginSettingsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/pluginSettings.js');
+			//$templateMgr->assign('submissionMetadataFormFieldsJS', $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/submissionMetadataFormFields.js'); // Template is not used at the moment, but could be used to implement a possibility for the user to insert an ID of an existing ERC and connect it to a submission.
+
 		}
 		return $success;
 	}
 
 	/**
-	 * Function which extends the submissionMetadataFormFields template and adds template variables concerning temporal- and spatial properties 
-	 * and the administrative unit if there is already a storage in the database. 
-	 * @param hook Templates::Submission::SubmissionMetadataForm::AdditionalMetadata
+	 * Function which uploads a workspace.zip to the o2r service and requests/integrates the metadata of the newly created compendium candidate 
+	 * in the submission step 3.   
+	 * @param hook submissionsubmitstep2form::execute
 	 */
-	public function extendSubmissionMetadataFormTemplate($hookName, $params)
+	
+	public function uploadCompendium($hookName, $params) 
 	{
+		// loading OJS ERC plugin settings 
+		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+		$context = PKPApplication::getRequest()->getContext();
+		$contextId = $context ? $context->getId() : 0;
+		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
+		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
+
+		// get the genreId of the genre "ERC"
+		$genreDAO = DAORegistry::getDAO('GenreDAO'); // classes/submission/GenreDAO.inc.php 
+		$genreIdErc = $genreDAO->getByKey("ERC")->_data[id];
+
+		// id of current submission 
+		$submissionId = $params[0]->submissionId; 
+
 		/*
-		This way templates are loaded. 
-		Its important that the corresponding hook is activated. 
-		If you want to override a template you need to create a .tpl-file which is in the plug-ins template path which the same 
-		path it got in the regular ojs structure. E.g. if you want to override/ add something to this template 
-		'/ojs/lib/pkp/templates/submission/submissionMetadataFormTitleFields.tpl'
-		you have to store in in the plug-ins template path under this path 'submission/form/submissionMetadataFormFields.tpl'. 
-		Further details can be found here: https://docs.pkp.sfu.ca/dev/plugin-guide/en/templates
-		Where are templates located: https://docs.pkp.sfu.ca/pkp-theming-guide/en/html-smarty
+		Request to the database table 'submission_files' to get the file id for the current submission 
+		where the genre is ERC. So to get the file id of the workspace-zip file. 
+		There was the need for a direct request to the database, as there was no OJS function available to search 
+		for the file ids of a corresponding submission.
 		*/
+		$databaseRequestFileId = DB::table('submission_files')
+			->where('submission_id', '=', $submissionId)
+			->where('genre_id', '=', $genreIdErc)
+			->get('file_id');
 
-		$templateMgr = &$params[1];
-		$output = &$params[2];
+		$fileIdOfWorkspaceZip = $databaseRequestFileId[0]->file_id; 
 
-		// example: the arrow is used to access the attribute smarty of the variable smarty 
-		// $templateMgr = $smarty->smarty; 
+		// if a workspace-zip with the genre ERC exists, then it is uploaded to the o2r server 
+		if ($fileIdOfWorkspaceZip !== null) {
+			/*
+			Request to the database table 'files' to get the path of the corresponding file id. So to get the path 
+			of the workspace-zip file. 
+			There was the need for a direct request to the database, as the OJS function which should be used for this 
+			shown here below, is not delivering the path for the current submission, only for the ones created before.
 
-		$request = Application::get()->getRequest();
-		$context = $request->getContext();
+			$submissionFileDao = DAORegistry::getDAO('SubmissionFileDAO');  
+			$test = $submissionFileDao->getById($fileIdOfWorkspaceZip); 
+			*/ 
+			$databaseRequestPath = DB::table('files')
+				->where('file_id', '=', $fileIdOfWorkspaceZip)
+				->get('path');
+
+			$directoryOfWorkspaceZip = $databaseRequestPath[0]->path; 
+
+			$uploadedFilesDirectory = Config::getVar('files', 'files_dir'); 
+			$fullDirectoryOfWorkspaceZip = $uploadedFilesDirectory . '/' . $directoryOfWorkspaceZip; 
+			
+			// Request to upload zip 
+			$headers = array(
+				$serverCookie,
+				'Content-type: multipart/form-data'
+			); 
+
+			$url = 'http://localhost/api/v1/compendium';
+    
+			$csv_file = new CURLFile($fullDirectoryOfWorkspaceZip, 'application/zip');
+   
+			$post_data = array(
+   			   "compendium" => $csv_file,
+			   "content_type" => 'workspace'
+   			);
+    
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_VERBOSE, true); # needed? 
+			curl_setopt($curl, CURLOPT_HEADER, false); # needed? 
+			curl_setopt($curl, CURLOPT_POST, true);
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+			$responseCompendium = curl_exec($curl);
+			$statusCompendium = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl); 			
 		
-		/*
-		In case the user repeats the step "3. Enter Metadata" in the process 'Submit an Article' and comes back to this step to make changes again, 
-		the already entered data is read from the database, added to the template and displayed for the user.
-		Data is loaded from the database, passed as template variable to the 'submissionMetadataFormFiels.tpl' 
-	 	and requested from there in the 'submissionMetadataFormFields.js' to display coordinates in a map, the date and coverage information if available.
-		*/
 
-		$publicationDao = DAORegistry::getDAO('PublicationDAO');
+			$compendiumId = json_decode($responseCompendium)->id;
 
-		$submissionId = $request->getUserVar('submissionId');
-		$publication = $publicationDao->getById($submissionId);
+			if ($statusCompendium === 200) {
+				// request for metadata of the candidate compendium 
+				$headers = array(
+					$serverCookie,
+				); 
 
-		$ErcId = $publication->getData('ojsErcPlugin::ErcId');
-		
-		//assign data as variables to the template 
-		$templateMgr->assign('ErcIdFromDb', $ErcId);
+				$url = 'http://localhost/api/v1/compendium/' . $compendiumId . '/metadata';
+			
+				$curl = curl_init();
+				curl_setopt($curl, CURLOPT_URL, $url);
+				curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+				curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+				$responseGetMetadata = curl_exec($curl);
+				$statusGetMetadata = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+				curl_close($curl); 
+			}
 
-		// echo "TestTesTest123"; // by echo a direct output is created on the page
+			// store metadata of the candidate compendium in the OJS database, so that they can be displayed in submission step 3 
+			$metadata = json_decode($responseGetMetadata);
 
-		// here the original template is extended by the additional template modified by geoOJS  
-		$output .= $templateMgr->fetch($this->getTemplateResource('submission/form/submissionMetadataFormFields.tpl'));
+			$compendiumTitle = $metadata->metadata->o2r->title; 
+			$compendiumAbstract = $metadata->metadata->o2r->description; 
 
-		return false;
+			$submissionId = $params[0]->submissionId; 
+
+			$request = Application::get()->getRequest();
+			$primaryLocale = $request->getContext()->getPrimaryLocale();
+
+			/*
+			The usual step to adapt the metadata (shown at the bottom of this comment) is not working here, 
+			it works only one step later with hook 'Publication::edit' in submission step 3. 
+			Thus there was the need to make a direct entry into the database.
+
+			$currentPublication = $params[0];
+			$currentPublication->setData('title', $compendiumTitle, $primaryLocale); 
+			*/
+
+			// store title in the database 
+			DB::table('publication_settings')->insert([
+				'publication_id' => $submissionId,
+				'locale' => $primaryLocale, 
+				'setting_name' => 'title',
+				'setting_value' => $compendiumTitle, 
+			]); 
+
+			// store abstract in the database 
+			DB::table('publication_settings')->insert([
+				'publication_id' => $submissionId,
+				'locale' => $primaryLocale, 
+				'setting_name' => 'abstract',
+				'setting_value' => $compendiumAbstract, 
+			]); 
+
+			// store compendiumId in the database 
+			DB::table('publication_settings')->insert([
+				'publication_id' => $submissionId,
+				'locale' => $primaryLocale, 
+				'setting_name' => 'ojsErcPlugin::candidateCompendiumId',
+				'setting_value' => $compendiumId, 
+			]); 
+
+			// create job - example request 
+			/*
+			$postfields = array();
+			$postfields['compendium_id'] = '6Ajod';
+			$ch = curl_init();
+			curl_setopt($ch,CURLOPT_URL, 'http://localhost/api/v1/job');
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array("Cookie: connect.sid=s%3AvpspzYFC46nMVxx66OzFXAmYzxw6gP-e.zY%2F%2F8rObqc5ku%2BPwNUbY9YssR5PGzFmQOokBiI8GkAQ"));
+			curl_setopt($ch,CURLOPT_POST, true);
+			curl_setopt($ch,CURLOPT_POSTFIELDS, $postfields);
+			curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
+			$result = curl_exec($ch);
+			echo $result;
+			*/ 
+		}
 	}
 
 	/**
+	 * Function which updates the metadata of a compendium candidate and publishs the candidate on the o2r service 
+	 * in the submission step 3.   
+	 * @param hook Publication::edit
+	 */
+	public function updateCompendium($hookname, $params)
+	{
+		// loading OJS ERC plugin settings 
+		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
+		$context = PKPApplication::getRequest()->getContext();
+		$contextId = $context ? $context->getId() : 0;
+		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
+		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
+
+ 		$request = Application::get()->getRequest();
+		$context = $request->getContext();
+		
+		$submissionId = $request->getUserVar('submissionId');
+
+		// get compendiumId of the compendium of the current submission 
+		$compendiumIdDatabaseRequest = DB::table('publication_settings')
+			->where('publication_id', '=', $submissionId)
+			->where('setting_name', '=', 'ojsErcPlugin::candidateCompendiumId')
+			->get('setting_value');
+
+		$compendiumId = $compendiumIdDatabaseRequest->toArray()[0]->setting_value;
+
+		if ($compendiumId !== null && $compendiumId !== "") {
+
+			/*
+			Request metadata of the compendium 
+			*/
+			$headers = array(
+				$serverCookie,
+			); 
+
+			$url = 'http://localhost/api/v1/compendium/' . $compendiumId . '/metadata';
+			
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+			$responseGetMetadata = curl_exec($curl);
+			$statusGetMetadata = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl); 
+			
+			$responseGetMetadataDecoded = json_decode($responseGetMetadata);
+
+			$metadata = $responseGetMetadataDecoded->metadata;
+
+			/*
+			Adapt metadata to the changes done in OJS submission step 3 
+			*/
+			// get by the user adapted variables 
+			$title = $params[2][title][en_US];  
+			$abstractWithP = $params[2]['abstract'][en_US];  
+			$abstract = substr($abstractWithP, 3, -4); 
+
+			// adapt metadata element of compendium 
+			$metadata->o2r->title = $title;
+			$metadata->o2r->description = $abstract; 
+			
+			/*
+			Publish compendium with adapted metadata 
+			*/ 
+
+			$headers = array(
+				$serverCookie,
+				'Content-type: application/json'
+			); 
+
+			$url = 'http://localhost/api/v1/compendium/' . $compendiumId . '/metadata';
+
+			$post_data = json_encode($metadata);
+
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_VERBOSE, true); # needed? 
+			curl_setopt($curl, CURLOPT_HEADER, false); # needed? 
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data); 
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
+			$responseCompendium = curl_exec($curl);
+			$statusCompendium = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			curl_close($curl); 	
+
+			$ErcId = $compendiumId; 
+
+			$newPublication = $params[0];
+
+			/**
+			* If an ErcId exists, there are two galleys created. In the first one, the displayfile/ main html of the ERC is shown. 
+			* In the second one the ERC in the classical o2r-ui is shown. 
+			* This is only done, if the corresponding galley option is not disabled in the OJS ERC plugin settings. 
+			*/
+			if ($ErcId !== null && $ErcId !== "") {
+
+				// ERC html displayfile galley
+				if ($OJSERCPluginSettings[ERCHTMLGalley] === NULL) { 
+	
+					/* 
+					Request to the o2r API, to get to know the filename of the displayfile of the ERC 
+					*/
+					$url = $OJSERCPluginSettings[serverURL] . 'compendium/' . $ErcId; 
+
+					$curl = curl_init($url);
+					curl_setopt($curl, CURLOPT_URL, $url);
+					curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+					//for debug only!
+					curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+					curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+					$resp = curl_exec($curl);
+					curl_close($curl);
+
+					$jsonData = json_decode($resp);
+					$nameDisplayfile = $jsonData->metadata->o2r->displayfile;
+
+					/*
+					Request to the o2r API, to get the displayFile. Then the file gets stored in a temporary directory. 
+					*/
+					$url = $OJSERCPluginSettings[serverURL] . 'compendium/' . $ErcId . '/data/' . $nameDisplayfile; 
+
+					$curl = curl_init($url);
+					curl_setopt($curl, CURLOPT_URL, $url);
+					curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+					//for debug only!
+					curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+					curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+					$resp = curl_exec($curl);
+					curl_close($curl);
+
+					$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+					$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $nameDisplayfile; // path in the temporary directory
+
+					file_put_contents($temporaryIndexHtmlPath, $resp);
+
+					// create corresponding submission file and galley 
+					$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-HTML', $newPublication);
+				}
+
+				// ERC o2r-ui galley 
+				if ($OJSERCPluginSettings[ERCo2ruiGalley] === NULL) { 
+
+					// get path were the initial html file for the galley is stored
+					$pathHtmlFile = $this->getPluginPath() . '/ERCGalleyInitial.html'; 
+				
+					$ErcHtmlFileName = 'ERCGalley-' . $ErcId . '.html'; 
+				
+					/*
+					Update the index.html of the build in terms of the ErcId and store it at a temporary location  
+					*/
+					$pathIndexHtml = $this->getPluginPath() . '/build/index.html'; 
+
+					$temporaryDirectory = sys_get_temp_dir(); // directory to store the zip-file 
+					$temporaryIndexHtmlPath = $temporaryDirectory . '/' . $ErcHtmlFileName; // path in the temporary directory
+
+					copy($pathIndexHtml, $temporaryIndexHtmlPath);  
+
+					$rawHtmlFile = fopen($temporaryIndexHtmlPath, "r+");
+					$readHtmlFile = fread($rawHtmlFile, filesize($temporaryIndexHtmlPath)); 
+
+					$positionConfigJs = strrpos($readHtmlFile, 'config.js"></script>'); // The ErcId must be inserted after the config.js, to overwrite the Id set in the config.js
+					$positionConfigErcID = $positionConfigJs + 20; 
+
+					$scriptErcId = '<script>config.ercID =  "' . $ErcId . '"; </script>'; 
+
+					$adaptedErcId = substr_replace($readHtmlFile, $scriptErcId, $positionConfigErcID, 0);
+
+					file_put_contents($temporaryIndexHtmlPath, $adaptedErcId);
+					fclose($rawHtmlFile);
+
+					// create corresponding submission file and galley 
+					$this->createSubmissionFileAndGalley($temporaryIndexHtmlPath, $ErcId, 'ERC-Galley', $newPublication);
+				}
+			}
+		}
+	}
+
+	/**
+	 * not needed, as the ErcId is stored directly in the database as ojsErcPlugin::candidateCompendiumId 
+	 * 
 	 * Function which extends the schema of the publication_settings table in the database. 
 	 * There are two further rows in the table one for the spatial properties, and one for the timestamp. 
 	 * @param hook Schema::get::publication
@@ -289,6 +634,8 @@ class ojsErcPlugin extends GenericPlugin
 	}
 
 	/**
+	 * not needed, as the function is integrated in function updateCompendium 
+	 * 
 	 * Function which fills the new fields (created by the function addToSchema) in the schema. 
 	 * The data is collected using the 'submissionMetadataFormFields.js', then passed as input to the 'submissionMetadataFormFields.tpl'
 	 * and requested from it in this php script by a POST-method. 
