@@ -1,19 +1,17 @@
 <?php
 // import of genericPlugin
 import('lib.pkp.classes.plugins.GenericPlugin');
-// import('lib.pkp.classes.submission.SubmissionFile');
-import('lib.pkp.classes.submissionFile.SubmissionFile');
+import('lib.pkp.classes.submission.SubmissionFile');
 			
 use phpDocumentor\Reflection\Types\Null_;
 use \PKP\components\forms\FormComponent;
 use \PKP\components\forms\FieldHTML; // needed for function extendScheduleForPublication
-use PKP\submissionFile\SubmissionFile;
+use PKP\submission\SubmissionFile;
 use PKP\core\JSONMessage; // needed otherwise the JSONMessage in the manage-function is not possible 
 use APP\facades\Repo; // needed to get publication information 
 use PKP\db\DAORegistry; // needed to interact with the GenreDAO 
 use Illuminate\Support\Facades\DB; // needed to interact with the OJS database 
-use PKP\config\Config; // needed to get the directory of the uploaded files
-// use APP\core\Application;
+use PKP\config\Config; // needed to get the directory of the uploaded files 
 
 /**
  * ojsErcPlugin, a generic Plugin for enabling geospatial properties in OJS 
@@ -122,8 +120,7 @@ class ojsErcPlugin extends GenericPlugin
 
 				// colour 
 				$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
- 				$pkpApplication = new Application();
-				$context = $pkpApplication->getRequest()->getContext();
+				$context = PKPApplication::getRequest()->getContext();
 				$contextId = $context ? $context->getId() : 0;
 				$defaultThemePluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'DefaultThemePlugin');
 				$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
@@ -274,8 +271,7 @@ class ojsErcPlugin extends GenericPlugin
 	{
 		// loading OJS ERC plugin settings 
 		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-		$pkpApplication = new Application();
-		$context = $pkpApplication->getRequest()->getContext();
+		$context = PKPApplication::getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
 		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
@@ -436,8 +432,7 @@ class ojsErcPlugin extends GenericPlugin
 	{
 		// loading OJS ERC plugin settings 
 		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-		$pkpApplication = new Application();
-		$context = $pkpApplication->getRequest()->getContext();
+		$context = PKPApplication::getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
 		$serverCookie = "Cookie: connect.sid=" . $OJSERCPluginSettings[serverCookie];
@@ -657,8 +652,7 @@ class ojsErcPlugin extends GenericPlugin
 
 		// loading OJS ERC plugin settings 
 		$pluginSettingsDAO = DAORegistry::getDAO('PluginSettingsDAO');
-		$pkpApplication = new Application();
-		$context = $pkpApplication->getRequest()->getContext();
+		$context = PKPApplication::getRequest()->getContext();
 		$contextId = $context ? $context->getId() : 0;
 		$OJSERCPluginSettings = $pluginSettingsDAO->getPluginSettings($contextId, 'ojsercplugin');
 
